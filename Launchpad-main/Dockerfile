@@ -1,25 +1,17 @@
-# Use a minimal Python base image
-FROM python:3.11-slim
+# Use a lightweight Python base image
+FROM python:3.10-slim
 
-# Set the working directory in the container
+# Set working directory
 WORKDIR /app
 
-# Install pipenv
-RUN pip install pipenv
+# Copy dependencies first to leverage Docker layer caching
+COPY requirements.txt .
 
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY Pipfile .
-COPY Pipfile.lock .
+# Copy the rest of the app
+COPY . .
 
-# Install dependencies using pipenv
-RUN pipenv install --system --deploy
-
-# Copy the app code
-COPY ./app ./app
-
-# Expose the FastAPI default port
-EXPOSE 8000
-EXPOSE 9200
-
-# Run the FastAPI app
+# Run the FastAPI app using Uvicorn
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

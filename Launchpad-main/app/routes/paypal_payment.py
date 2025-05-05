@@ -27,7 +27,7 @@ def get_paypal_access_token():
 
 # 2. Create Order
 @router.post("/create-order")
-def create_paypal_order():
+def create_paypal_order(amount:float):
     access_token = get_paypal_access_token()
     url = f"{PAYPAL_API_BASE}/v2/checkout/orders"
 
@@ -41,7 +41,7 @@ def create_paypal_order():
         "purchase_units": [{
             "amount": {
                 "currency_code": "USD",
-                "value": "50.00"
+                "value": amount
             }
         }],
         "application_context": {
