@@ -1,0 +1,31 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+fastapi = "*"
+datetime = "*"
+sqlalchemy = "*"
+bcrypt = "<4.0.0"
+pydantic = {extras = ["email"] }
+dotenv = "*"
+python-multipart = "*"
+elasticsearch = "<8.0.0"
+redis = "*"
+stripe = "*"
+paypalrestsdk = "*"
+python-dotenv = "*"
+psycopg2-binary = "*"
+alembic = "*"
+reportlab = "*"
+slowapi = "*"
+uvicorn = {extras = ["standard"], version = "*"}
+aioredis = "*"
+passlib = {extras = ["bcrypt"], version = "*"}
+python-jose = {extras = ["cryptography"], version = "*"}
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
