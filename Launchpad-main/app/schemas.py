@@ -1,5 +1,4 @@
-# Module: app/schemas.py
-# Brief: TODO - add description
+
 
 from pydantic import BaseModel, EmailStr 
 from typing import Literal
@@ -121,3 +120,18 @@ class OrderOut(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+# -------- Wishlist Schemas -------- #
+class WishlistBase(BaseModel):
+    user_id: int
+    product_id: int
+
+class WishlistCreate(WishlistBase):
+    pass
+
+class WishlistResponse(WishlistBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True

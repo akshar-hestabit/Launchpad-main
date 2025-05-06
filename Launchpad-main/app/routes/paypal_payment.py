@@ -1,5 +1,5 @@
 # Module: app/routes/paypal_payment.py
-# Brief: TODO - add description
+
 
 import requests
 import os
@@ -12,9 +12,9 @@ router = APIRouter(prefix="/paypal", tags=["PayPal"])
 
 PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID")
 PAYPAL_SECRET = os.getenv("PAYPAL_SECRET")
-PAYPAL_API_BASE = "https://api-m.sandbox.paypal.com"  # use sandbox for testing
+PAYPAL_API_BASE = "https://api-m.sandbox.paypal.com"  
 
-# 1. Get Access Token
+# Get Access Token
 def get_paypal_access_token():
     url = f"{PAYPAL_API_BASE}/v1/oauth2/token"
     headers = {"Accept": "application/json", "Accept-Language": "en_US"}
@@ -25,7 +25,7 @@ def get_paypal_access_token():
         raise HTTPException(status_code=500, detail="Failed to get PayPal access token")
     return response.json()["access_token"]
 
-# 2. Create Order
+#  Create Order
 @router.post("/create-order")
 def create_paypal_order(amount:float):
     access_token = get_paypal_access_token()

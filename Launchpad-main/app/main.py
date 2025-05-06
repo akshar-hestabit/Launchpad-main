@@ -1,5 +1,3 @@
-# Module: app/main.py
-# Brief: TODO - add description
 
 from fastapi import FastAPI, Request
 from datetime import datetime
@@ -8,7 +6,7 @@ from app.db import engine, SessionLocal
 from app.routes import (
     users, dashboard, products, cart_route,
     stripe_payment, stripe_webhook,
-    paypal_payment, paypal_webhook, order_management, invoice)
+    paypal_payment, paypal_webhook, order_management, invoice,search, crud_wishlist)
 from app.utils import(otp, email)
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -19,30 +17,29 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from elasticsearch import Elasticsearch
 from sqlalchemy.orm import Session
-from app.utils.request_logging import log_requests  # Adjust import path as needed
+from app.utils.request_logging import log_requests  
 from app.utils.logger import logger
-# Initialize rate limiter with a global limit of 4 requests per minute
+from typing import Optional,List
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["4/minute"]
+    default_limits=["20/minute"]
 )
 
 # Initialize FastAPI app
 app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-# Add SlowAPI middleware to enforce global limits
 app.add_middleware(SlowAPIMiddleware)
-app.middleware("http")(log_requests)  # Add request logging middleware
-# Allow all origins for development
+app.middleware("http")(log_requests)  
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://127.0.0.1:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+app.mount('/frontend', StaticFiles(directory='frontend'), name='frontend')
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
@@ -53,8 +50,6 @@ es = Elasticsearch(ELASTICSEARCH_URL)
 
 start_time = datetime.now()
 
-# Initialize Elasticsearch index
-# (unchanged from your original file)
 def init_elasticsearch():
     try:
         if not es.ping():
@@ -84,7 +79,6 @@ def init_elasticsearch():
         print(f"❌ Error initializing Elasticsearch: {str(e)}")
 
 # Reindex products into Elasticsearch
-# (unchanged)
 def reindex_products(db: Session):
     products = db.query(models.Products).all()
     for product in products:
@@ -98,7 +92,7 @@ def reindex_products(db: Session):
         })
     print(f"🔄 Reindexed {len(products)} products into Elasticsearch")
 
-# Run on application startup
+
 @app.on_event("startup")
 async def startup_event():
     print("🚀 Starting application...")
@@ -106,6 +100,7 @@ async def startup_event():
     db = SessionLocal()
     reindex_products(db)
     db.close()
+
 
 # ========== Routes ==========
 app.include_router(otp.router)
@@ -120,7 +115,8 @@ app.include_router(paypal_payment.router)
 app.include_router(paypal_webhook.router)
 app.include_router(order_management.router)
 app.include_router(invoice.router)
-
+app.include_router(search.router)
+app.include_router(crud_wishlist.router)
 # Health check endpoints
 @app.get("/")
 def root():

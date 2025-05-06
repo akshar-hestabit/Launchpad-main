@@ -1,7 +1,5 @@
 # Module: app/routes/stripe_webhook.py
-# Brief: TODO - add description
 
-# routes/stripe_webhook.py
 from fastapi import APIRouter, Request, HTTPException
 import stripe
 import os

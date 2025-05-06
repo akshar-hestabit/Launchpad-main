@@ -1,5 +1,5 @@
 # Module: app/routes/dashboard.py
-# Brief: TODO - add description
+
 
 from fastapi import APIRouter, Depends
 from app.dependencies import get_current_user

@@ -1,5 +1,5 @@
 # Module: app/routes/users.py
-# Brief: TODO - add description
+
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session

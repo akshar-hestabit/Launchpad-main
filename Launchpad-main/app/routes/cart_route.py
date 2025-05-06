@@ -1,5 +1,4 @@
 # Module: app/routes/cart_route.py
-# Brief: TODO - add description
 
 
 from fastapi import APIRouter,FastAPI, HTTPException

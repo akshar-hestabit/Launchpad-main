@@ -1,9 +1,9 @@
 # Module: app/routes/order_management.py
-# Brief: TODO - add description
+
 
 from fastapi import FastAPI, APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session ,joinedload
-from app import models, schemas # Import your models and schemas
+from app import models, schemas 
 from app.models import Products, Order, OrderItem
 from app.schemas import OrderOut, OrderCreate
 from datetime import datetime

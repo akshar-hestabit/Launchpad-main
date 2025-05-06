@@ -37,7 +37,7 @@ otp_store: Dict[str, Dict] = {}
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 EMAIL_USERNAME = "aksharrastogirocks@gmail.com"
-EMAIL_PASSWORD = "kxuw bljp rowt ovzp "  # Consider using environment variables for security
+EMAIL_PASSWORD = "kxuw bljp rowt ovzp "  
 OTP_EXPIRY_SECONDS = 300  # 5 minutes
 
 class OTPRequest(BaseModel):
@@ -78,7 +78,6 @@ def verify_otp(email: str, otp_to_verify: str) -> bool:
         otp_data["expires_at"] > current_time and 
         not otp_data["is_used"]):
         
-        # Mark as used to prevent reuse
         otp_data["is_used"] = True
         return True
     
@@ -180,11 +179,10 @@ async def send_otp_route(request: OTPRequest, background_tasks: BackgroundTasks)
         # Send OTP email in background to improve response time
         background_tasks.add_task(send_email_otp, request.email, otp)
         
-        # For development only - remove in production
+        
         return {"message": "OTP sent successfully", "otp": otp}
         
-        # For production use this instead
-        # return {"message": "OTP sent successfully"}
+ 
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to send OTP: {str(e)}")
@@ -200,7 +198,3 @@ async def verify_otp_route(request: OTPVerifyRequest, background_tasks: Backgrou
         return {"message": "OTP verified successfully"}
     else:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
-
-# Add this to your main.py to include the router
-# from app.routes.otp_service import router as otp_router
-# app.include_router(otp_router, prefix="/auth", tags=["authentication"])

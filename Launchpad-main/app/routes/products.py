@@ -1,5 +1,4 @@
 # Module: app/routes/products.py
-# Brief: TODO - add description
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -19,8 +18,7 @@ router = APIRouter()
 def all_products(db: Session = Depends(get_db)):
     return db.query(models.Products).all()
 
-# Put the search endpoint BEFORE the {product_id} endpoint
-#@router.get("/products/search")
+
 @router.get("/products/search")
 def search_products(
     keyword: str = Query("", description="Search keyword"),
@@ -65,10 +63,9 @@ def search_products(
     return [hit["_source"] for hit in hits]
 
 
-# Put the ID endpoint AFTER the search endpoint
 @router.get("/products/{product_id}", response_model=schemas.ProductOut)
 def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
-    # Fixed the typo here: models.Product -> models.Products
+  
     product = db.query(models.Products).filter(models.Products.id == product_id).first()
 
     if not product:
@@ -82,7 +79,7 @@ def add_new_product(product: schemas.ProductCreate, db: Session=Depends(get_db))
     db.commit()
     db.refresh(new_product)
     
-    # Convert SQLAlchemy model to dict properly to avoid non-serializable attributes
+
     product_dict = {
         "id": new_product.id,
         "name": new_product.name,
@@ -107,14 +104,13 @@ def update_product(
     if not product:
         raise HTTPException(status_code=404, detail=f"Product with id {product_id} not found")
 
-    # Fixed method name: dict() -> model_dump()
     for field, value in updated_product.model_dump().items():
         setattr(product, field, value)
 
     db.commit()
     db.refresh(product)
     
-    # Convert SQLAlchemy model to dict properly
+   
     product_dict = {
         "id": product.id,
         "name": product.name,
@@ -140,11 +136,10 @@ def delete_by_id(product_id: int, db: Session=Depends(get_db)):
     db.delete(product)      
     db.commit()
     
-    # Also delete from Elasticsearch
+
     try:
         es.delete(index=INDEX_NAME, id=product_id)
     except Exception:
         pass
-        # If product doesn't exist in ES, just continue
     
     return {"message": f"Product with id {product_id} deleted successfully"}

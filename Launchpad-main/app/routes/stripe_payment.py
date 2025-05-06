@@ -1,5 +1,5 @@
 # Module: app/routes/stripe_payment.py
-# Brief: TODO - add description
+
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException

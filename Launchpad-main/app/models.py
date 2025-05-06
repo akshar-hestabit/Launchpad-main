@@ -68,7 +68,7 @@ class Order(Base):
 
     order_items = relationship("OrderItem", back_populates="order", cascade="all, delete")
     user = relationship("User", back_populates="orders")    
-    items = relationship("OrderItem", back_populates="order")
+    items = relationship("OrderItem", back_populates="order",overlaps="order_items")
 
 class OrderItem(Base):
     __tablename__ = "order_items"
@@ -80,3 +80,10 @@ class OrderItem(Base):
 
     order = relationship("Order", back_populates="order_items")
     product = relationship("Products")
+
+class TokenBlacklist(Base):
+    __tablename__ = "token_blacklist"
+
+    id = Column(Integer, primary_key=True, index=True)
+    token = Column(String, unique=True, index=True)
+    expires_at = Column(DateTime)

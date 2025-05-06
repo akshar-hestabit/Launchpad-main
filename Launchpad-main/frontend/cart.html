@@ -1,11 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Cart</title>
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-    <h1>Shopping Cart</h1>
-</body>
-</html>
+<script>
+  document.getElementById('login-form').addEventListener('submit', async function(event) {
+      event.preventDefault();
+
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      try {
+          const response = await fetch('http://127.0.0.1:8000/login', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ username, password })
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+              // ✅ Store user_id in localStorage
+              localStorage.setItem('user_id', data.user_id); // backend must return user_id
+              alert('Login successful!');
+              window.location.href = '/cart.html'; // Redirect to cart or home
+          } else {
+              alert(data.detail || 'Login failed.');
+          }
+      } catch (error) {
+          console.error('Login error:', error);
+          alert('An error occurred during login.');
+      }
+  });
+</script>

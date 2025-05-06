@@ -1,5 +1,5 @@
 # Module: app/db.py
-# Brief: TODO - add description
+
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base

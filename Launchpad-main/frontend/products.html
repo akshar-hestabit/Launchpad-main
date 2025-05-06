@@ -2,10 +2,139 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Products</title>
-    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Reset some default browser styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body Styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7fb;
+            color: #333;
+        }
+
+        /* Header Styling */
+        header {
+            text-align: center;
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            font-size: 2rem;
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        /* Product List Container */
+        #product-list-container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        #product-list {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            font-size: 1.2rem;
+        }
+
+        /* Product Card Layout */
+        .product-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 10px;
+        }
+
+        /* Individual Product Card */
+        .product-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: scale(1.05);
+        }
+
+        .product-card h3 {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .product-card .brand {
+            font-size: 1.1rem;
+            color: #555;
+        }
+
+        .product-card .description {
+            margin: 15px 0;
+            font-size: 1rem;
+            color: #666;
+        }
+
+        .product-card .price {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .product-card .quantity {
+            font-size: 1rem;
+            color: #777;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Products Listing</h1>
+    <header>
+        <h1>Products Listing</h1>
+    </header>
+    <div id="product-list-container">
+        <div id="product-list">Loading...</div>
+    </div>
+
+    <script>
+        fetch('http://127.0.0.1:8000/products')  // Adjust the URL if needed
+            .then(response => response.json())
+            .then(data => {
+                const productListContainer = document.getElementById('product-list');
+                
+                if (data && Array.isArray(data) && data.length > 0) {
+                    let productListHTML = '<div class="product-cards-container">';
+                    data.forEach(product => {
+                        productListHTML += `
+                            <div class="product-card">
+                                <h3>${product.name}</h3>
+                                <p class="brand">Brand: <strong>${product.brand}</strong></p>
+                                <p class="description">${product.description}</p>
+                                <p class="price">$${product.price}</p>
+                                <p class="quantity">In stock: <strong>${product.quantity}</strong></p>
+                            </div>
+                        `;
+                    });
+                    productListHTML += '</div>';
+                    productListContainer.innerHTML = productListHTML;
+                } else {
+                    productListContainer.innerHTML = 'No products available at the moment.';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching product data:', error);
+                document.getElementById('product-list').innerHTML = 'Error loading products.';
+            });
+    </script>
 </body>
 </html>

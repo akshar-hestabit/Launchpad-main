@@ -1,5 +1,5 @@
 # Module: app/routes/paypal_webhook.py
-# Brief: TODO - add description
+
 
 from fastapi import APIRouter, Request, HTTPException
 import hmac
@@ -23,7 +23,6 @@ async def paypal_webhook_listener(request: Request):
 
         print("🔔 PayPal Webhook Event Received:", event)
 
-        # rest of your logic...
 
         return {"status": "received"}
 

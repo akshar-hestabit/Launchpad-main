@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Product Search</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        input, select, button {
+            margin: 5px;
+            padding: 8px;
+        }
+        .product {
+            border: 1px solid #ccc;
+            margin: 10px 0;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Search Products</h1>
+
+    <form id="searchForm">
+        <input type="text" id="q" placeholder="Search..." />
+        <input type="number" id="min_price" placeholder="Min Price" />
+        <input type="number" id="max_price" placeholder="Max Price" />
+        <input type="text" id="brand" placeholder="Brand" />
+        <input type="number" id="category_id" placeholder="Category ID" />
+        <button type="submit">Search</button>
+    </form>
+
+    <div id="results"></div>
+
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const q = document.getElementById('q').value;
+            const min_price = document.getElementById('min_price').value;
+            const max_price = document.getElementById('max_price').value;
+            const brand = document.getElementById('brand').value;
+            const category_id = document.getElementById('category_id').value;
+
+            const params = new URLSearchParams();
+
+            if (q) params.append("q", q);
+            if (min_price) params.append("min_price", min_price);
+            if (max_price) params.append("max_price", max_price);
+            if (brand) params.append("brand", brand);
+            if (category_id) params.append("category_id", category_id);
+
+            const response = await fetch(`/search?${params.toString()}`);
+            const data = await response.json();
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (data.results && data.results.length > 0) {
+                data.results.forEach(product => {
+                    const productDiv = document.createElement('div');
+                    productDiv.classList.add('product');
+                    productDiv.innerHTML = `
+                        <h3>${product.name}</h3>
+                        <p>${product.description}</p>
+                        <p>Price: ₹${product.price}</p>
+                        <p>Brand: ${product.brand}</p>
+                        <p>Category ID: ${product.category_id}</p>
+                    `;
+                    resultsDiv.appendChild(productDiv);
+                });
+            } else {
+                resultsDiv.innerHTML = '<p>No products found.</p>';
+            }
+        });
+    </script>
+</body>
+</html>
