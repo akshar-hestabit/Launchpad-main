@@ -7,14 +7,15 @@
     <style>
         body { 
             font-family: Arial, sans-serif; 
-            background: #f7f7f7; 
+            background: url('https://images.unsplash.com/photo-1551462285-52c47236ed8c?q=80&w=1933&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') no-repeat center center fixed; 
+            background-size: cover;
             margin: 0;
             padding: 20px;
         }
         .cart-container { 
             max-width: 700px; 
             margin: 40px auto; 
-            background: #fff; 
+            background: rgba(255,255,255,0.88); 
             padding: 30px; 
             border-radius: 8px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -100,6 +101,32 @@
             width: 60px;
             padding: 5px;
             text-align: center;
+        }
+        .payment-methods {
+            margin-top: 18px;
+            margin-bottom: 10px;
+            text-align: right;
+        }
+        .payment-methods label {
+            margin-right: 16px;
+            font-size: 1rem;
+        }
+        .payment-methods input[type="radio"] {
+            margin-right: 6px;
+        }
+        @media (max-width: 600px) {
+            .cart-container {
+                padding: 10px;
+            }
+            table th, table td {
+                padding: 6px;
+            }
+            .cart-actions {
+                text-align: center;
+            }
+            .payment-methods {
+                text-align: center;
+            }
         }
     </style>
 </head>
@@ -226,6 +253,16 @@
                         </tr>
                     </tbody>
                 </table>
+                <div class="payment-methods">
+                    <label>
+                        <input type="radio" name="paymentMethod" value="stripe" checked>
+                        <span style="color:#635bff;font-weight:bold;">Stripe</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="paymentMethod" value="paypal">
+                        <span style="color:#ffc439;font-weight:bold;">PayPal</span>
+                    </label>
+                </div>
                 <div class="cart-actions">
                     <button class="btn btn-primary" onclick="checkoutCart()">Proceed to Checkout</button>
                     <button class="btn btn-danger" onclick="clearCart()">Clear Cart</button>
@@ -279,10 +316,20 @@
             }
         }
 
-        // Checkout function
+        // Checkout with selected payment method
         function checkoutCart() {
-            // Replace with actual checkout logic
-            window.location.href = '/checkout';
+            // Get selected payment method
+            const method = document.querySelector('input[name="paymentMethod"]:checked');
+            if (!method) {
+                alert("Please select a payment method.");
+                return;
+            }
+            // Redirect to your payment endpoint
+            if (method.value === "stripe") {
+                window.location.href = `/checkout/stripe?user_id=${user_id}`;
+            } else if (method.value === "paypal") {
+                window.location.href = `/checkout/paypal?user_id=${user_id}`;
+            }
         }
 
         // Initialize on page load

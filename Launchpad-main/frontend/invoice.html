@@ -7,24 +7,73 @@
     body {
       font-family: Arial, sans-serif;
       padding: 2rem;
+      margin: 0;
+      min-height: 100vh;
+      background: url('https://images.unsplash.com/photo-1708474660686-7a00a0ffe4ac?q=80&w=1954&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') no-repeat center center fixed;
+      background-size: cover;
+    }
+    .container {
+      max-width: 400px;
+      margin: 60px auto;
+      background: rgba(255,255,255,0.85);
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      padding: 2rem 2.5rem;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #2a2a2a;
+    }
+    h2 {
+      margin-top: 1.5rem;
+      font-size: 1.15rem;
+      color: #444;
     }
     input, button {
       padding: 0.5rem;
       margin: 0.5rem 0;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      width: 100%;
+      box-sizing: border-box;
+      display: block;
+    }
+    button {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    @media (max-width: 500px) {
+      .container {
+        padding: 1rem;
+        max-width: 98vw;
+      }
+      body {
+        padding: 0.5rem;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="container">
+    <h1>Invoice Download</h1>
 
-  <h1>Invoice Download</h1>
+    <h2>📄 Download Invoice by Order ID</h2>
+    <input type="number" id="orderIdInput" placeholder="Enter Order ID" />
+    <button onclick="downloadInvoice()">Download Invoice</button>
 
-  <h2>📄 Download Invoice by Order ID</h2>
-  <input type="number" id="orderIdInput" placeholder="Enter Order ID" />
-  <button onclick="downloadInvoice()">Download Invoice</button>
-
-  <h2>📁 Download All Invoices by User ID</h2>
-  <input type="number" id="userIdInput" placeholder="Enter User ID" />
-  <button onclick="downloadUserInvoices()">Download User Invoices</button>
+    <h2>📁 Download All Invoices by User ID</h2>
+    <input type="number" id="userIdInput" placeholder="Enter User ID" />
+    <button onclick="downloadUserInvoices()">Download User Invoices</button>
+  </div>
 
   <script>
     function downloadInvoice() {
@@ -45,6 +94,5 @@
       window.open(`http://localhost:8000/invoice/user/${userId}`, "_blank");
     }
   </script>
-
 </body>
 </html>
