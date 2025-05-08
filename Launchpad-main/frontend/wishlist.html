@@ -72,7 +72,7 @@
 </head>
 <body>
 
-    <h1>Your Wishlist</h1>
+    <h1>My Wishlist</h1>
     
     <div class="wishlist-container" id="wishlist-items">
         <!-- Wishlist items will be dynamically loaded here -->
@@ -83,70 +83,88 @@
     <script src="/static/js/scripts.js"></script>
     
     <script>
-        window.onload = function() {
-            const userId = localStorage.getItem('user_id');
-            const wishlistContainer = document.getElementById('wishlist-items');
-            const messageContainer = document.getElementById('message');
+    window.onload = function() {
+        loadWishlist(); // Initial load
+    };
 
-            if (!userId) {
-                alert("You must be logged in to view your wishlist.");
-                window.location.href = "/login"; // Adjust as needed
-                return;
-            }
+    function loadWishlist() {
+        const userId = localStorage.getItem('user_id');
+        const wishlistContainer = document.getElementById('wishlist-items');
+        const messageContainer = document.getElementById('message');
 
-            // Fetch the wishlist items
-            fetch(`http://127.0.0.1:8000/wishlist/${userId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.wishlist && Object.keys(data.wishlist).length > 0) {
-                        let wishlistContent = '';
-                        for (let productId in data.wishlist) {
-                            const product = data.wishlist[productId];
-                            wishlistContent += `
-                                <div class="wishlist-item">
-                                    <h3>${product.name}</h3>
-                                    <p>${product.description}</p>
-                                    <p class="price">$${product.price}</p>
-                                    <button class="remove-btn" onclick="removeFromWishlist(${product.id})">Remove</button>
-                                </div>
-                            `;
-                        }
-                        wishlistContainer.innerHTML = wishlistContent;
-                    } else {
-                        messageContainer.innerHTML = 'Your wishlist is empty!';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching wishlist data:', error);
-                    messageContainer.innerHTML = 'There was an error loading your wishlist.';
-                });
-        };
+        if (!userId) {
+            window.location.href = "/login";
+            return;
+        }
 
-        // Function to remove an item from the wishlist
-        function removeFromWishlist(productId) {
-            const userId = localStorage.getItem('user_id');
-            if (!userId) {
-                alert("You must be logged in to remove items from the wishlist.");
-                return;
-            }
+        // Clear existing content
+        wishlistContainer.innerHTML = '<div class="loading">Loading wishlist...</div>';
+        messageContainer.innerHTML = '';
 
-            fetch(`http://127.0.0.1:8000/wishlist/remove/${userId}/${productId}`, {
-                method: 'DELETE',
-            })
+        fetch(`/wishlist/${userId}`)
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    alert("Product removed from wishlist!");
-                    window.location.reload(); // Reload to update the wishlist display
+              console.log(data);
+                wishlistContainer.innerHTML = ''; // Clear loading
+                
+                if (data.wishlist && Object.keys(data.wishlist).length > 0) {
+                    wishlistContainer.innerHTML = Object.values(data.wishlist).map(product => `
+                        <div class="wishlist-item" id="product-${product.id}">
+                            <h3>${product.name}</h3>
+                            <p>${product.description}</p>
+                            <p class="price">$${product.price}</p>
+                            <button class="remove-btn" onclick="removeFromWishlist(${product.id})">Remove</button>
+                        </div>
+                    `).join('');
                 } else {
-                    alert("There was an issue removing the product.");
+                    messageContainer.innerHTML = 'Your wishlist is empty!';
                 }
             })
             .catch(error => {
-                console.error('Error removing product:', error);
+                console.error('Error:', error);
+                messageContainer.innerHTML = 'Error loading wishlist. Please try again.';
             });
+    }
+
+    async function removeFromWishlist(productId) {
+        const userId = localStorage.getItem('user_id');
+        if (!userId) return;
+
+        try {
+            const response = await fetch(`/wishlist/${userId}/${productId}`, {
+                method: 'DELETE',
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                // Remove item from DOM
+                const itemToRemove = document.getElementById(`product-${productId}`);
+                if (itemToRemove) {
+                    itemToRemove.remove();
+                }
+                
+                // Check if wishlist is now empty
+                const wishlistContainer = document.getElementById('wishlist-items');
+                if (wishlistContainer.children.length === 0) {
+                    document.getElementById('message').innerHTML = 'Your wishlist is empty!';
+                }
+            } else {
+                showMessage('Failed to remove item', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showMessage('Error removing item', 'error');
         }
-    </script>
+    }
+
+    function showMessage(text, type = 'info') {
+        const messageContainer = document.getElementById('message');
+        messageContainer.innerHTML = text;
+        messageContainer.style.color = type === 'error' ? '#d9534f' : '#4CAF50';
+        setTimeout(() => messageContainer.innerHTML = '', 3000);
+    }
+</script>
 
 </body>
 </html>
+

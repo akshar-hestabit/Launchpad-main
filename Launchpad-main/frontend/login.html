@@ -12,7 +12,7 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-image: url('https://img.freepik.com/free-photo/abstract-uv-ultraviolet-light-composition_23-2149243965.jpg?semt=ais_hybrid&w=740'); 
+            background-image: url('https://images.pexels.com/photos/355465/pexels-photo-355465.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1'); 
             background-size: cover;
             background-position: center;
         }
@@ -97,63 +97,117 @@
     </div>
 
     <script>
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const messageElement = document.getElementById('message');
-            const submitBtn = document.getElementById('submitBtn');
-            const btnText = document.getElementById('btnText');
-            const spinner = document.getElementById('spinner');
-            
-            // Reset UI state
-            messageElement.style.display = 'none';
-            messageElement.className = 'message';
-            btnText.textContent = 'Logging in...';
-            spinner.style.display = 'inline-block';
-            submitBtn.disabled = true;
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const messageElement = document.getElementById('message');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const spinner = document.getElementById('spinner');
+    
+    // Reset UI state
+    messageElement.style.display = 'none';
+    messageElement.className = 'message';
+    btnText.textContent = 'Logging in...';
+    spinner.style.display = 'inline-block';
+    submitBtn.disabled = true;
 
-            try {
-                const response = await fetch('http://localhost:8000/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
-                    credentials: 'include',
-                    mode: 'cors'
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    // Show success message
-                    messageElement.textContent = 'Login successful! Redirecting...';
-                    messageElement.className = 'message success';
-                    messageElement.style.display = 'block';
-                    
-                    // Redirect to dashboard
-                    setTimeout(() => {
-                      localStorage.setItem('auth_token', data.access_token);
-                      window.location.href = '/static/dashboard.html';
-
-                    }, 1500);
-                } else {
-                    throw new Error(data.detail || 'Login failed. Please try again.');
-                }
-            } catch (err) {
-                // Show error message
-                messageElement.textContent = err.message;
-                messageElement.className = 'message error';
-                messageElement.style.display = 'block';
-                console.error('Login error:', err);
-            } finally {
-                // Reset button state
-                btnText.textContent = 'Login';
-                spinner.style.display = 'none';
-                submitBtn.disabled = false;
-            }
+    try {
+        console.log('Sending login request to server...');
+        const response = await fetch('http://localhost:8000/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+            credentials: 'include',
+            mode: 'cors'
         });
+
+        console.log('Received response with status:', response.status);
+        const data = await response.json();
+        
+        // Enhanced debugging
+        console.log('Full server response data:', data);
+        console.log('Response data type:', typeof data);
+        console.log('Response data keys:', Object.keys(data));
+        console.log('user_id exists:', 'user_id' in data);
+        console.log('user_id value:', data.user_id);
+        console.log('user_id type:', typeof data.user_id);
+        
+        if (response.ok) {
+            // Show success message
+            messageElement.textContent = 'Login successful! Redirecting...';
+            messageElement.className = 'message success';
+            messageElement.style.display = 'block';
+            
+            // Store auth token
+            if (data.access_token) {
+                localStorage.setItem('auth_token', data.access_token);
+                console.log('Stored auth token in localStorage');
+            }
+            
+            // Check every possible way the user_id might be present
+            let userId = null;
+            let userIdSource = '';
+            
+            if (data.user_id !== undefined && data.user_id !== null) {
+                userId = data.user_id;
+                userIdSource = 'direct user_id field';
+            } else if (data.userId !== undefined && data.userId !== null) {
+                userId = data.userId;
+                userIdSource = 'direct userId field (camelCase)';
+            } else if (data.id !== undefined && data.id !== null) {
+                userId = data.id;
+                userIdSource = 'direct id field';
+            } else if (data.access_token) {
+                try {
+                    const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+                    console.log('JWT payload:', payload);
+
+                    if (payload.user_id) {
+                        userId = payload.user_id;
+                        userIdSource = 'user_id from JWT';
+                    } else if (payload.sub) {
+                        userId = payload.sub;
+                        userIdSource = 'sub from JWT (username)';
+                    }
+                } catch (e) {
+                    console.error('Error decoding JWT:', e);
+                }
+            }
+            
+            // Store user ID if found anywhere
+            if (userId !== null) {
+                localStorage.setItem('user_id', userId);
+                console.log(`Saved user ID (${userIdSource}):`, userId);
+                
+                // Redirect to dashboard
+                setTimeout(() => {
+                    window.location.href = '/static/dashboard.html';
+                }, 1500);
+            } else {
+                messageElement.textContent = 'Login successful but user ID not found in response.';
+                messageElement.className = 'message error';
+                console.error('No user ID found in any expected field');
+            }
+        } else {
+            throw new Error(data.detail || 'Login failed. Please try again.');
+        }
+    } catch (err) {
+        // Show error message
+        messageElement.textContent = err.message;
+        messageElement.className = 'message error';
+        messageElement.style.display = 'block';
+        console.error('Login error:', err);
+    } finally {
+        // Reset button state
+        btnText.textContent = 'Login';
+        spinner.style.display = 'none';
+        submitBtn.disabled = false;
+    }
+});
     </script>
 </body>
 </html>

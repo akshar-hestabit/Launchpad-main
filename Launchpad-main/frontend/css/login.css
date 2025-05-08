@@ -71,3 +71,10 @@ button:disabled {
 .message.error {
     color: red;
 }
+
+
+.loading {
+    text-align: center;
+    color: #666;
+    padding: 20px;
+}

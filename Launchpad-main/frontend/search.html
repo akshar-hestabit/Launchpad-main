@@ -14,6 +14,25 @@
             margin: 10px 0;
             padding: 10px;
         }
+        .add-cart-btn {
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+        .add-cart-btn:hover {
+            background: #388e3c;
+        }
+        .cart-message {
+            color: #4CAF50;
+            font-size: 0.95rem;
+            margin-top: 8px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -31,6 +50,73 @@
     <div id="results"></div>
 
     <script>
+        async function fetchAndDisplayProducts(params = "") {
+            const response = await fetch(`/search?${params}`);
+            const data = await response.json();
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (data.results && data.results.length > 0) {
+                data.results.forEach(product => {
+                    const productDiv = document.createElement('div');
+                    productDiv.classList.add('product');
+                    productDiv.innerHTML = `
+                        <h3>${product.name}</h3>
+                        <p>${product.description}</p>
+                        <p>Price: ₹${product.price}</p>
+                        <p>Brand: ${product.brand}</p>
+                        <p>Category ID: ${product.category_id}</p>
+                        <button class="add-cart-btn" data-product-id="${product.id}">Add to Cart</button>
+                        <div class="cart-message"></div>
+                    `;
+                    resultsDiv.appendChild(productDiv);
+                });
+
+                // Add event listeners for "Add to Cart" buttons
+                document.querySelectorAll('.add-cart-btn').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const userId = localStorage.getItem('user_id');
+                        if (!userId) {
+                            alert('Please login to add items to your cart.');
+                            window.location.href = '/static/login.html';
+                            return;
+                        }
+                        const productId = btn.getAttribute('data-product-id');
+                        const messageDiv = btn.nextElementSibling;
+                        btn.disabled = true;
+
+                        try {
+                            const res = await fetch(`/cart/add?user_id=${userId}&product_id=${productId}&quantity=1`, {
+                                method: 'POST'
+                            });
+                            const result = await res.json();
+                            if (res.ok) {
+                                messageDiv.textContent = "Added to cart!";
+                                messageDiv.style.display = "block";
+                                setTimeout(() => messageDiv.style.display = "none", 1200);
+                            } else {
+                                messageDiv.textContent = "Error adding to cart.";
+                                messageDiv.style.display = "block";
+                            }
+                        } catch (error) {
+                            messageDiv.textContent = "Error adding to cart.";
+                            messageDiv.style.display = "block";
+                        } finally {
+                            btn.disabled = false;
+                        }
+                    });
+                });
+            } else {
+                resultsDiv.innerHTML = '<p>No products found.</p>';
+            }
+        }
+
+        // Show all products on page load
+        window.onload = function() {
+            fetchAndDisplayProducts();
+        };
+
         document.getElementById('searchForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -48,28 +134,7 @@
             if (brand) params.append("brand", brand);
             if (category_id) params.append("category_id", category_id);
 
-            const response = await fetch(`/search?${params.toString()}`);
-            const data = await response.json();
-
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '';
-
-            if (data.results && data.results.length > 0) {
-                data.results.forEach(product => {
-                    const productDiv = document.createElement('div');
-                    productDiv.classList.add('product');
-                    productDiv.innerHTML = `
-                        <h3>${product.name}</h3>
-                        <p>${product.description}</p>
-                        <p>Price: ₹${product.price}</p>
-                        <p>Brand: ${product.brand}</p>
-                        <p>Category ID: ${product.category_id}</p>
-                    `;
-                    resultsDiv.appendChild(productDiv);
-                });
-            } else {
-                resultsDiv.innerHTML = '<p>No products found.</p>';
-            }
+            await fetchAndDisplayProducts(params.toString());
         });
     </script>
 </body>

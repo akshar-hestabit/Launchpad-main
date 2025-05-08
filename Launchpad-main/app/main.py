@@ -73,9 +73,9 @@ def init_elasticsearch():
                 }
             }
             es.indices.create(index=INDEX_NAME, body=body)
-            print(f"✅ Created Elasticsearch index: {INDEX_NAME}")
+            print(f" Created Elasticsearch index: {INDEX_NAME}")
         else:
-            print(f"ℹ️ Elasticsearch index '{INDEX_NAME}' already exists.")
+            print(f" Elasticsearch index '{INDEX_NAME}' already exists.")
     except Exception as e:
         print(f" Error initializing Elasticsearch: {str(e)}")
 
@@ -91,7 +91,7 @@ def reindex_products(db: Session):
             "category_id": product.category_id,
             "brand": product.brand
         })
-    print(f"🔄 Reindexed {len(products)} products into Elasticsearch")
+    print(f"Reindexed {len(products)} products into Elasticsearch")
 
 
 @app.on_event("startup")
@@ -167,3 +167,7 @@ async def serve_orders_page():
 @app.get("/payment-success")
 def serve_payment_success():
     return FileResponse("frontend/payment-success.html")
+
+@app.get("/signup-page")
+def get_signup_page():
+    return FileResponse("frontend/signup.html")

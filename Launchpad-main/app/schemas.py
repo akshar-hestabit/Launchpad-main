@@ -10,7 +10,7 @@ class UserCreate(BaseModel):
     username: str
     email: EmailStr
     password: str
-    role: Literal["admin", "vendor", "customer"]
+    role: str | None = "customer"
 
 class UserOut(BaseModel):
     id: int

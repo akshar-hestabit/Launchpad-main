@@ -1,6 +1,3 @@
-# Module: app/auth.py
-
-
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from app import schemas, models, db
@@ -84,7 +81,7 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), 
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": user.id}, expires_delta=access_token_expires
     )
     
     # Set cookie with token

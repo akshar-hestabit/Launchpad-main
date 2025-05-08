@@ -3,253 +3,290 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Cart</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <title>Your Shopping Cart</title>
     <style>
-        .cart-container {
-            max-width: 800px;
-            margin: 0 auto;
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #f7f7f7; 
+            margin: 0;
             padding: 20px;
         }
-        .cart-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-            align-items: center;
+        .cart-container { 
+            max-width: 700px; 
+            margin: 40px auto; 
+            background: #fff; 
+            padding: 30px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        .cart-actions {
-            display: flex;
-            gap: 10px;
+        h1 { 
+            text-align: center; 
+            color: #333;
         }
-        button {
-            padding: 5px 10px;
-            cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .empty-cart {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-        .cart-total {
-            text-align: right;
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
             margin-top: 20px;
-            font-size: 1.2em;
+        }
+        th, td { 
+            padding: 12px; 
+            text-align: center; 
+            border-bottom: 1px solid #eee;
+        }
+        th { 
+            background: #f0f0f0;
             font-weight: bold;
         }
-        .quantity-controls {
-            display: flex;
-            align-items: center;
-            gap: 5px;
+        .total-row td { 
+            font-weight: bold; 
+            background: #f9f9f9;
         }
-        .product-info {
-            flex-grow: 1;
+        .actions button { 
+            background: #007bff; 
+            color: #fff; 
+            border: none; 
+            padding: 8px 14px; 
+            border-radius: 4px; 
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .actions button:hover { 
+            background: #0056b3; 
+        }
+        .empty { 
+            text-align: center; 
+            color: #888; 
+            margin: 40px 0;
+            padding: 20px;
+        }
+        .back-link { 
+            display: inline-block; 
+            margin-bottom: 20px; 
+            color: #007bff; 
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link:hover { 
+            text-decoration: underline;
+        }
+        .btn { 
+            display: inline-block; 
+            margin: 5px 0; 
+            padding: 10px 20px; 
+            border-radius: 4px; 
+            border: none; 
+            cursor: pointer; 
+            font-size: 16px;
+            transition: opacity 0.3s;
+        }
+        .btn-primary { 
+            background: #007bff; 
+            color: #fff;
+        }
+        .btn-danger { 
+            background: #dc3545; 
+            color: #fff;
+        }
+        .cart-actions { 
+            text-align: right; 
+            margin-top: 20px; 
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <div class="cart-container">
+        <a href="/dashboard" class="back-link">&larr; Back to Dashboard</a>
         <h1>Your Shopping Cart</h1>
-        <div id="cart-items"></div>
-        <div id="empty-message" class="empty-cart" style="display: none;">
-            <p>Your cart is empty.</p>
-            <a href="/products.html">Continue Shopping</a>
-        </div>
-        <div id="cart-total" class="cart-total" style="display: none;"></div>
-        <div class="cart-actions" style="margin-top: 20px;">
-            <button id="clear-cart-btn">Clear Cart</button>
-            <button id="checkout-btn">Proceed to Checkout</button>
+        <div id="cart-content">
+            <div class="loading">Loading your cart...</div>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Check authentication
-            const token = localStorage.getItem('auth_token');
-            if (!token) {
-                window.location.href = "/login.html";
-                return;
-            }
+        // Get user ID from localStorage
+        const user_id = localStorage.getItem('user_id');
+        if (!user_id) {
+            window.location.href = '/login'; // Redirect if not logged in
+        }
 
+        // Format currency as INR
+        function formatINR(amount) {
+            return "₹" + amount.toFixed(2);
+        }
+
+        // Fetch product details
+        async function fetchProductDetails(productId) {
             try {
-                // Verify token first
-                const authResponse = await fetch('/auth/verify', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!authResponse.ok) {
-                    throw new Error('Not authenticated');
-                }
-
-                // Get user data from response
-                const authData = await authResponse.json();
-                const userId = authData.user.id;
-
-                // Load cart
-                await loadCart(userId, token);
-
-                // Setup event listeners
-                document.getElementById('clear-cart-btn').addEventListener('click', () => clearCart(userId, token));
-                document.getElementById('checkout-btn').addEventListener('click', () => checkout(userId, token));
-
-            } catch (err) {
-                console.error("Authentication error:", err);
-                localStorage.removeItem('auth_token');
-                window.location.href = "/login.html";
-            }
-        });
-
-        async function loadCart(userId, token) {
-            try {
-                const response = await fetch(`/cart/${userId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to load cart');
-                }
-
-                const data = await response.json();
-                const cartContainer = document.getElementById('cart-items');
-                const emptyMessage = document.getElementById('empty-message');
-                const cartTotal = document.getElementById('cart-total');
-
-                cartContainer.innerHTML = '';
-                
-                if (!data.cart || data.cart.length === 0) {
-                    emptyMessage.style.display = 'block';
-                    cartTotal.style.display = 'none';
-                } else {
-                    emptyMessage.style.display = 'none';
-                    cartTotal.style.display = 'block';
-                    
-                    let total = 0;
-                    
-                    data.cart.forEach(item => {
-                        const itemElement = document.createElement('div');
-                        itemElement.className = 'cart-item';
-                        itemElement.innerHTML = `
-                            <div class="product-info">
-                                <strong>${item.product_name}</strong>
-                                <p>Price: $${item.price.toFixed(2)}</p>
-                            </div>
-                            <div class="quantity-controls">
-                                <span>Quantity: ${item.quantity}</span>
-                                <button onclick="updateQuantity(${userId}, ${item.product_id}, -1)">-</button>
-                                <button onclick="updateQuantity(${userId}, ${item.product_id}, 1)">+</button>
-                                <button onclick="removeItem(${userId}, ${item.product_id})">Remove</button>
-                            </div>
-                        `;
-                        cartContainer.appendChild(itemElement);
-                        total += item.price * item.quantity;
-                    });
-
-                    cartTotal.innerHTML = `<strong>Total: $${total.toFixed(2)}</strong>`;
-                }
-            } catch (err) {
-                console.error("Failed to load cart:", err);
-                alert("Failed to load cart. Please try again.");
+                const response = await fetch(`/products/${productId}`);
+                if (!response.ok) throw new Error("Product not found");
+                return await response.json();
+            } catch (error) {
+                console.error("Error fetching product:", error);
+                return { name: "Unknown Product", price: 0 };
             }
         }
 
-        async function updateQuantity(userId, productId, change) {
-            const token = localStorage.getItem('auth_token');
+        // Load and render the cart
+        async function loadCart() {
             try {
-                const response = await fetch('/cart/update', {
+                document.getElementById("cart-content").innerHTML = '<div class="loading">Loading your cart...</div>';
+                
+                // 1. Fetch cart data
+                const cartResponse = await fetch(`/cart/${user_id}`);
+                if (!cartResponse.ok) throw new Error("Failed to load cart");
+                const cartData = await cartResponse.json();
+
+                // 2. Get product details for each item
+                const productIds = Object.keys(cartData.cart);
+                const cartItems = await Promise.all(
+                    productIds.map(async (productId) => {
+                        const product = await fetchProductDetails(productId);
+                        return {
+                            id: productId,
+                            name: product.name,
+                            price: product.price,
+                            quantity: parseInt(cartData.cart[productId])
+                        };
+                    })
+                );
+
+                // 3. Render the cart
+                renderCart({ items: cartItems });
+            } catch (err) {
+                console.error("Cart loading error:", err);
+                document.getElementById("cart-content").innerHTML = `
+                    <div class="empty">
+                        <p>Failed to load cart. Please try again later.</p>
+                        <button class="btn btn-primary" onclick="loadCart()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Render the cart
+        function renderCart(cart) {
+            const cartDiv = document.getElementById("cart-content");
+            if (!cart?.items || cart.items.length === 0) {
+                cartDiv.innerHTML = `
+                    <div class="empty">
+                        <p>Your cart is empty.</p>
+                        <a href="/dashboard" class="btn btn-primary">Continue Shopping</a>
+                    </div>
+                `;
+                return;
+            }
+
+            let rows = "";
+            let total = 0;
+            cart.items.forEach((item) => {
+                const subtotal = (item.price || 0) * (item.quantity || 0);
+                total += subtotal;
+                rows += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>
+                            <input type="number" min="1" value="${item.quantity}" 
+                                   onchange="updateQuantity(${item.id}, this.value)">
+                        </td>
+                        <td>${formatINR(item.price)}</td>
+                        <td>${formatINR(subtotal)}</td>
+                        <td class="actions">
+                            <button onclick="removeFromCart(${item.id})">Remove</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            cartDiv.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Subtotal</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                        <tr class="total-row">
+                            <td colspan="3"><strong>Total</strong></td>
+                            <td colspan="2"><strong>${formatINR(total)}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="cart-actions">
+                    <button class="btn btn-primary" onclick="checkoutCart()">Proceed to Checkout</button>
+                    <button class="btn btn-danger" onclick="clearCart()">Clear Cart</button>
+                </div>
+            `;
+        }
+
+        // Update item quantity
+        async function updateQuantity(productId, newQuantity) {
+            try {
+                await fetch('/cart/update', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        user_id: userId,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        user_id, 
                         product_id: productId,
-                        quantity: change
+                        quantity: Math.max(1, parseInt(newQuantity))
                     })
                 });
-
-                if (response.ok) {
-                    await loadCart(userId, token);
-                } else {
-                    throw new Error('Failed to update quantity');
-                }
+                loadCart();
             } catch (err) {
-                console.error("Error updating quantity:", err);
                 alert("Failed to update quantity. Please try again.");
             }
         }
 
-        async function removeItem(userId, productId) {
-            const token = localStorage.getItem('auth_token');
+        // Remove item from cart
+        async function removeFromCart(productId) {
+            if (!confirm("Remove this item from your cart?")) return;
             try {
-                const response = await fetch('/cart/remove', {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        product_id: productId
-                    })
+                await fetch('/cart/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id, product_id: productId })
                 });
-
-                if (response.ok) {
-                    await loadCart(userId, token);
-                } else {
-                    throw new Error('Failed to remove item');
-                }
+                loadCart();
             } catch (err) {
-                console.error("Error removing item:", err);
                 alert("Failed to remove item. Please try again.");
             }
         }
 
-        async function clearCart(userId, token) {
-            if (!confirm('Are you sure you want to clear your cart?')) return;
-            
+        // Clear entire cart
+        async function clearCart() {
+            if (!confirm("Are you sure you want to clear your entire cart?")) return;
             try {
-                const response = await fetch('/cart/clear', {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        user_id: userId
-                    })
+                await fetch(`/cart/delete?user_id=${user_id}`, { 
+                    method: 'DELETE' 
                 });
-
-                if (response.ok) {
-                    await loadCart(userId, token);
-                } else {
-                    throw new Error('Failed to clear cart');
-                }
+                loadCart();
             } catch (err) {
-                console.error("Error clearing cart:", err);
                 alert("Failed to clear cart. Please try again.");
             }
         }
 
-        function checkout(userId, token) {
-            // Redirect to checkout page with user ID
-            window.location.href = `/checkout.html?user_id=${userId}`;
+        // Checkout function
+        function checkoutCart() {
+            // Replace with actual checkout logic
+            window.location.href = '/checkout';
         }
 
-        // Make functions available globally for button clicks
-        window.updateQuantity = updateQuantity;
-        window.removeItem = removeItem;
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', loadCart);
     </script>
 </body>
 </html>
