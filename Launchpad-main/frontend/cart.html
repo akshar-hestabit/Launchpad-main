@@ -1,32 +1,255 @@
-<script>
-  document.getElementById('login-form').addEventListener('submit', async function(event) {
-      event.preventDefault();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .cart-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
+        .cart-actions {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 5px 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .empty-cart {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .cart-total {
+            text-align: right;
+            margin-top: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .product-info {
+            flex-grow: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="cart-container">
+        <h1>Your Shopping Cart</h1>
+        <div id="cart-items"></div>
+        <div id="empty-message" class="empty-cart" style="display: none;">
+            <p>Your cart is empty.</p>
+            <a href="/products.html">Continue Shopping</a>
+        </div>
+        <div id="cart-total" class="cart-total" style="display: none;"></div>
+        <div class="cart-actions" style="margin-top: 20px;">
+            <button id="clear-cart-btn">Clear Cart</button>
+            <button id="checkout-btn">Proceed to Checkout</button>
+        </div>
+    </div>
 
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check authentication
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                window.location.href = "/login.html";
+                return;
+            }
 
-      try {
-          const response = await fetch('http://127.0.0.1:8000/login', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ username, password })
-          });
+            try {
+                // Verify token first
+                const authResponse = await fetch('/auth/verify', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
 
-          const data = await response.json();
+                if (!authResponse.ok) {
+                    throw new Error('Not authenticated');
+                }
 
-          if (response.ok) {
-              // ✅ Store user_id in localStorage
-              localStorage.setItem('user_id', data.user_id); // backend must return user_id
-              alert('Login successful!');
-              window.location.href = '/cart.html'; // Redirect to cart or home
-          } else {
-              alert(data.detail || 'Login failed.');
-          }
-      } catch (error) {
-          console.error('Login error:', error);
-          alert('An error occurred during login.');
-      }
-  });
-</script>
+                // Get user data from response
+                const authData = await authResponse.json();
+                const userId = authData.user.id;
+
+                // Load cart
+                await loadCart(userId, token);
+
+                // Setup event listeners
+                document.getElementById('clear-cart-btn').addEventListener('click', () => clearCart(userId, token));
+                document.getElementById('checkout-btn').addEventListener('click', () => checkout(userId, token));
+
+            } catch (err) {
+                console.error("Authentication error:", err);
+                localStorage.removeItem('auth_token');
+                window.location.href = "/login.html";
+            }
+        });
+
+        async function loadCart(userId, token) {
+            try {
+                const response = await fetch(`/cart/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load cart');
+                }
+
+                const data = await response.json();
+                const cartContainer = document.getElementById('cart-items');
+                const emptyMessage = document.getElementById('empty-message');
+                const cartTotal = document.getElementById('cart-total');
+
+                cartContainer.innerHTML = '';
+                
+                if (!data.cart || data.cart.length === 0) {
+                    emptyMessage.style.display = 'block';
+                    cartTotal.style.display = 'none';
+                } else {
+                    emptyMessage.style.display = 'none';
+                    cartTotal.style.display = 'block';
+                    
+                    let total = 0;
+                    
+                    data.cart.forEach(item => {
+                        const itemElement = document.createElement('div');
+                        itemElement.className = 'cart-item';
+                        itemElement.innerHTML = `
+                            <div class="product-info">
+                                <strong>${item.product_name}</strong>
+                                <p>Price: $${item.price.toFixed(2)}</p>
+                            </div>
+                            <div class="quantity-controls">
+                                <span>Quantity: ${item.quantity}</span>
+                                <button onclick="updateQuantity(${userId}, ${item.product_id}, -1)">-</button>
+                                <button onclick="updateQuantity(${userId}, ${item.product_id}, 1)">+</button>
+                                <button onclick="removeItem(${userId}, ${item.product_id})">Remove</button>
+                            </div>
+                        `;
+                        cartContainer.appendChild(itemElement);
+                        total += item.price * item.quantity;
+                    });
+
+                    cartTotal.innerHTML = `<strong>Total: $${total.toFixed(2)}</strong>`;
+                }
+            } catch (err) {
+                console.error("Failed to load cart:", err);
+                alert("Failed to load cart. Please try again.");
+            }
+        }
+
+        async function updateQuantity(userId, productId, change) {
+            const token = localStorage.getItem('auth_token');
+            try {
+                const response = await fetch('/cart/update', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        product_id: productId,
+                        quantity: change
+                    })
+                });
+
+                if (response.ok) {
+                    await loadCart(userId, token);
+                } else {
+                    throw new Error('Failed to update quantity');
+                }
+            } catch (err) {
+                console.error("Error updating quantity:", err);
+                alert("Failed to update quantity. Please try again.");
+            }
+        }
+
+        async function removeItem(userId, productId) {
+            const token = localStorage.getItem('auth_token');
+            try {
+                const response = await fetch('/cart/remove', {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        product_id: productId
+                    })
+                });
+
+                if (response.ok) {
+                    await loadCart(userId, token);
+                } else {
+                    throw new Error('Failed to remove item');
+                }
+            } catch (err) {
+                console.error("Error removing item:", err);
+                alert("Failed to remove item. Please try again.");
+            }
+        }
+
+        async function clearCart(userId, token) {
+            if (!confirm('Are you sure you want to clear your cart?')) return;
+            
+            try {
+                const response = await fetch('/cart/clear', {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId
+                    })
+                });
+
+                if (response.ok) {
+                    await loadCart(userId, token);
+                } else {
+                    throw new Error('Failed to clear cart');
+                }
+            } catch (err) {
+                console.error("Error clearing cart:", err);
+                alert("Failed to clear cart. Please try again.");
+            }
+        }
+
+        function checkout(userId, token) {
+            // Redirect to checkout page with user ID
+            window.location.href = `/checkout.html?user_id=${userId}`;
+        }
+
+        // Make functions available globally for button clicks
+        window.updateQuantity = updateQuantity;
+        window.removeItem = removeItem;
+    </script>
+</body>
+</html>

@@ -1,6 +1,5 @@
 # Launchpad Project
 
-Refactored project structure with packages and modules.
 
 ## Project Structure
 

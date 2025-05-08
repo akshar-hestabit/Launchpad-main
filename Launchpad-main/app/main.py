@@ -40,6 +40,7 @@ app.add_middleware(
 )
 app.mount('/frontend', StaticFiles(directory='frontend'), name='frontend')
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
@@ -53,7 +54,7 @@ start_time = datetime.now()
 def init_elasticsearch():
     try:
         if not es.ping():
-            print("❌ Could not connect to Elasticsearch")
+            print(" Could not connect to Elasticsearch")
             return
 
         if not es.indices.exists(index=INDEX_NAME):
@@ -76,7 +77,7 @@ def init_elasticsearch():
         else:
             print(f"ℹ️ Elasticsearch index '{INDEX_NAME}' already exists.")
     except Exception as e:
-        print(f"❌ Error initializing Elasticsearch: {str(e)}")
+        print(f" Error initializing Elasticsearch: {str(e)}")
 
 # Reindex products into Elasticsearch
 def reindex_products(db: Session):
@@ -95,7 +96,7 @@ def reindex_products(db: Session):
 
 @app.on_event("startup")
 async def startup_event():
-    print("🚀 Starting application...")
+    print("...Starting application...")
     init_elasticsearch()
     db = SessionLocal()
     reindex_products(db)
@@ -162,3 +163,7 @@ async def serve_checkout_page():
 @app.get("/orders")
 async def serve_orders_page():
     return FileResponse("frontend/orders.html")
+
+@app.get("/payment-success")
+def serve_payment_success():
+    return FileResponse("frontend/payment-success.html")

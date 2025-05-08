@@ -100,7 +100,8 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), 
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        "user_id": user.id,
     }
 
 @router.post("/logout")

@@ -53,7 +53,8 @@ def create_paypal_order(amount:float):
     response = requests.post(url, headers=headers, json=order_data)
     if response.status_code != 201:
         raise HTTPException(status_code=500, detail="Failed to create PayPal order")
-    
+    print("PayPal Order Response:", response.json())
+
     return response.json()
 
 

@@ -7,12 +7,16 @@
         body {
             font-family: Arial, sans-serif;
             padding: 2rem;
-            background-color: #f0f2f5;
+            background-image: url('https://images.pexels.com/photos/355465/pexels-photo-355465.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
         }
         .container {
             max-width: 600px;
             margin: auto;
-            background: white;
+            background: rgba(255, 255, 255, 0.9);
             padding: 2rem;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -31,31 +35,49 @@
         .btn:hover {
             background-color: #0056b3;
         }
+        .user-info {
+            margin-top: 1rem;
+            font-size: 1rem;
+            color: #333;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Welcome to Dashboard</h2>
+        <h2>Welcome to E-Commerce Launchpad</h2>
 
         <!-- Buttons -->
         <a href="/frontend/cart.html" class="btn">Go to Cart</a>
         <a href="/frontend/wishlist.html" class="btn">View Wishlist</a>
+        <a href="/frontend/invoice.html" class="btn">Get Invoice</a>
+        <a href="/frontend/products.html" class="btn">Products</a>
+        <a href="/frontend/search.html" class="btn">Search</a> <!-- ✅ Added Search Page -->
         <a href="#" id="logoutBtn" class="btn">Logout</a>
+
+        <!-- User Info -->
+        <div class="user-info" id="userInfo"></div>
     </div>
 
     <script>
         const token = localStorage.getItem('auth_token');
+        const userId = localStorage.getItem('user_id');
+        const userName = localStorage.getItem('user_name'); // ✅ New: Get username
         const logoutBtn = document.getElementById('logoutBtn');
-        const userId = 1; // Use dynamic user ID if available
+        const userInfo = document.getElementById('userInfo');
 
-        if (!token) {
-            window.location.href = '/login.html';
+        // ✅ Show welcome message with username (fallback to user ID)
+        if (userName) {
+            userInfo.textContent = `Welcome, ${userName}! (User ID: ${userId})`;
+        } else if (userId) {
+            userInfo.textContent = `Logged in as User ID: ${userId}`;
         }
 
         // Logout functionality
         logoutBtn.addEventListener('click', () => {
             localStorage.removeItem('auth_token');
-            window.location.href = '/login.html';
+            localStorage.removeItem('user_id');
+            localStorage.removeItem('user_name'); // ✅ Clear name on logout
+            window.location.href = '/static/login.html';
         });
     </script>
 </body>

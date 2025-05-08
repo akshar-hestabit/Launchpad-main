@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Download Invoices</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+    }
+    input, button {
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Invoice Download</h1>
+
+  <h2>📄 Download Invoice by Order ID</h2>
+  <input type="number" id="orderIdInput" placeholder="Enter Order ID" />
+  <button onclick="downloadInvoice()">Download Invoice</button>
+
+  <h2>📁 Download All Invoices by User ID</h2>
+  <input type="number" id="userIdInput" placeholder="Enter User ID" />
+  <button onclick="downloadUserInvoices()">Download User Invoices</button>
+
+  <script>
+    function downloadInvoice() {
+      const orderId = document.getElementById("orderIdInput").value;
+      if (!orderId) {
+        alert("Please enter a valid Order ID.");
+        return;
+      }
+      window.open(`http://localhost:8000/invoice/${orderId}`, "_blank");
+    }
+
+    function downloadUserInvoices() {
+      const userId = document.getElementById("userIdInput").value;
+      if (!userId) {
+        alert("Please enter a valid User ID.");
+        return;
+      }
+      window.open(`http://localhost:8000/invoice/user/${userId}`, "_blank");
+    }
+  </script>
+
+</body>
+</html>
