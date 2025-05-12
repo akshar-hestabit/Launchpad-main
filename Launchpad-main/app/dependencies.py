@@ -1,6 +1,5 @@
 # Module: app/dependencies.py
 
-
 from fastapi import Depends, HTTPException, status
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session

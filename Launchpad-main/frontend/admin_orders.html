@@ -79,7 +79,7 @@
 
     async function verifyAdmin() {
       try {
-        const res = await fetch(`${API_URL}/users`, {
+        const res = await fetch(`${API_URL}/users/me`, {
           headers: { Authorization: `Bearer ${TOKEN}` }
         });
         
@@ -92,6 +92,7 @@
           throw new Error('Failed to verify admin status');
         }
         
+        console.log("---------------debug---------------")
         const user = await res.json();
         return user.role === 'admin';
         console.log(user.role)
