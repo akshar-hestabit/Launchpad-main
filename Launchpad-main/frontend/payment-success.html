@@ -1,29 +1,102 @@
 <!-- payment-success.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Payment Success</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      min-height: 100vh;
+      background: url('https://images.unsplash.com/photo-1456694441711-af0ab2d64c96?w=1200&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fHN1Y2Nlc3N8ZW58MHx8MHx8fDA%3D') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    }
+    .success-container {
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      padding: 40px 32px 32px 32px;
+      text-align: center;
+      max-width: 350px;
+      animation: fadeInUp 1s ease;
+    }
+    .success-icon {
+      font-size: 60px;
+      color: #27ae60;
+      margin-bottom: 16px;
+      animation: pop 0.7s cubic-bezier(.68,-0.55,.27,1.55);
+      display: inline-block;
+    }
+    h1 {
+      margin: 0 0 12px 0;
+      font-size: 2rem;
+      color: #222;
+      letter-spacing: 1px;
+    }
+    p {
+      color: #444;
+      margin-bottom: 24px;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 30px;
+      background: #27ae60;
+      color: #fff;
+      border: none;
+      border-radius: 25px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .button:hover {
+      background: #219150;
+    }
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes pop {
+      0% { transform: scale(0.5);}
+      70% { transform: scale(1.15);}
+      100% { transform: scale(1);}
+    }
+    @media (max-width: 500px) {
+      .success-container {
+        padding: 28px 12px 24px 12px;
+        max-width: 95vw;
+      }
+      h1 {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>Processing your payment...</h1>
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const orderId = urlParams.get('token'); // PayPal returns it as "token"
+  <div class="success-container">
+    <div class="success-icon">✅</div>
+    <h1>Payment Successful!</h1>
+    <p>Thank you for your purchase.<br>
+      Your payment has been processed.<br>
 
-    if (orderId) {
-      fetch(`http://localhost:8000/paypal/capture-order/${orderId}`, {
-        method: 'POST'
-      })
-      .then(res => res.json())
-      .then(data => {
-        document.body.innerHTML = `<h2>✅ Payment Captured Successfully!</h2><pre>${JSON.stringify(data, null, 2)}</pre>`;
-      })
-      .catch(err => {
-        document.body.innerHTML = `<h2>❌ Payment Capture Failed!</h2><pre>${err}</pre>`;
-      });
-    } else {
-      document.body.innerHTML = "<h2>❌ No Order ID Found</h2>";
-    }
-  </script>
+    </p>
+    <a href="/frontend/products.html" class="button">Continue Shopping</a>
+  </div>
 </body>
 </html>

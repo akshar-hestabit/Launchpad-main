@@ -24,6 +24,7 @@ uvicorn = {extras = ["standard"], version = "*"}
 aioredis = "*"
 passlib = {extras = ["bcrypt"], version = "*"}
 python-jose = {extras = ["cryptography"], version = "*"}
+uuid = "*"
 
 [dev-packages]
 

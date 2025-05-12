@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'fastapi-app'
+    static_configs:
+      - targets: ['10.10.0.1:8000']  # Or 'web:8000' if using Docker compose service name
+

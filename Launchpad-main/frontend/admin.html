@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Product Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        .container {
+            margin: 20px;
+        }
+        .product-list, .form-container {
+            margin-bottom: 20px;
+        }
+        .product {
+            background-color: white;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .form-container input, .form-container select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .form-container label {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Admin Product Management</h1>
+</header>
+
+<div class="container">
+
+    <!-- Product List -->
+    <div class="product-list" id="product-list">
+        <h2>Products</h2>
+        <div id="products"></div>
+    </div>
+
+    <!-- Add Product Form -->
+    <div class="form-container" id="add-product-form">
+        <h2>Add New Product</h2>
+        <form id="add-product">
+            <label for="name">Product Name:</label>
+            <input type="text" id="name" name="name" required>
+
+            <label for="description">Description:</label>
+            <input type="text" id="description" name="description" required>
+
+            <label for="price">Price:</label>
+            <input type="number" id="price" name="price" required>
+
+            <label for="quantity">Quantity:</label>
+            <input type="number" id="quantity" name="quantity" required>
+
+            <label for="category">Category:</label>
+            <input type="text" id="category" name="category">
+
+            <label for="brand">Brand:</label>
+            <input type="text" id="brand" name="brand">
+
+            <button type="submit">Add Product</button>
+        </form>
+    </div>
+
+</div>
+
+<script>
+    const API_URL = 'http://127.0.0.1:8000'; // Base URL of your FastAPI backend
+    const ACCESS_TOKEN = localStorage.getItem("auth_token"); // Get the token from localStorage
+
+    if (!ACCESS_TOKEN) {
+        alert('Please log in to manage products.');
+        window.location.href = "/login"; // Redirect to login page if no token
+    }
+
+    // Fetch products
+    async function fetchProducts() {
+        try {
+            const response = await fetch(`${API_URL}/products`, {
+                headers: {
+                    Authorization: `Bearer ${ACCESS_TOKEN}`
+                }
+            });
+            const data = await response.json();
+            const productList = document.getElementById('products');
+            productList.innerHTML = '';
+
+            if (data.length === 0) {
+                productList.innerHTML = '<p>No products available.</p>';
+            } else {
+                data.forEach(product => {
+                    const productDiv = document.createElement('div');
+                    productDiv.classList.add('product');
+                    productDiv.innerHTML = `
+                        <h3>${product.name}</h3>
+                        <p>${product.description}</p>
+                        <p>Price: $${product.price}</p>
+                        <p>Quantity: ${product.quantity}</p>
+                        <p>Category: ${product.category}</p>
+                        <p>Brand: ${product.brand}</p>
+                        <button onclick="editProduct(${product.id})">Edit</button>
+                        <button onclick="deleteProduct(${product.id})">Delete</button>
+                    `;
+                    productList.appendChild(productDiv);
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching products:', error);
+        }
+    }
+
+    // Add new product
+    document.getElementById('add-product').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const newProduct = {
+            name: document.getElementById('name').value,
+            description: document.getElementById('description').value,
+            price: parseFloat(document.getElementById('price').value),
+            quantity: parseInt(document.getElementById('quantity').value),
+            category: document.getElementById('category').value,
+            brand: document.getElementById('brand').value
+        };
+
+        try {
+            const response = await fetch(`${API_URL}/add_product`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${ACCESS_TOKEN}`
+                },
+                body: JSON.stringify(newProduct)
+            });
+            const result = await response.json();
+            if (response.ok) {
+                alert('Product added successfully');
+                fetchProducts(); // Refresh product list
+            } else {
+                alert('Error adding product: ' + result.detail);
+            }
+        } catch (error) {
+            console.error('Error adding product:', error);
+        }
+    });
+
+    // Edit product function (not yet implemented)
+    function editProduct(productId) {
+        alert('Edit product functionality is not implemented yet.');
+    }
+
+    // Delete product function
+    async function deleteProduct(productId) {
+        const confirmDelete = confirm("Are you sure you want to delete this product?");
+        if (confirmDelete) {
+            try {
+                const response = await fetch(`${API_URL}/deleteProduct/${productId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${ACCESS_TOKEN}`
+                    }
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    fetchProducts(); // Refresh product list
+                } else {
+                    alert('Error deleting product: ' + result.detail);
+                }
+            } catch (error) {
+                console.error('Error deleting product:', error);
+            }
+        }
+    }
+
+    // Fetch products when the page loads
+    fetchProducts();
+</script>
+
+</body>
+</html>
+

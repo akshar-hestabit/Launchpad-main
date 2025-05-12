@@ -1,3 +1,233 @@
+
+
+from pydantic import BaseModel, EmailStr 
+from typing import Literal
+from datetime import datetime
+
+# -------- User Schemas -------- #
+
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    role: str | None = "customer"
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    role: Literal["customer", "vendor", "admin", "guest"] = "customer"
+
+    model_config = {
+        "from_attributes": True
+    }
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str 
+
+class TokenData(BaseModel):
+    username: str | None = None
+
+
+
+# Module: app/models.py
+# Brief: TODO - add description
+
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+from app.db import Base
+from passlib.context import CryptContext  # For password hashing
+
+# Setup the password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)  # Primary key = already indexed
+    username = Column(String, index=True, unique=True, nullable=False)  # Search/login
+    email = Column(String, index=True, unique=True, nullable=True)     # Search/login
+    hashed_password = Column(String, nullable=True)
+    role = Column(String, nullable=False)
+
+    orders = relationship("Order", back_populates="user", cascade="all, delete")
+    wishlist = relationship("Wishlist", back_populates="user", cascade="all, delete")
+
+    def set_password(self, password: str):
+        self.hashed_password = pwd_context.hash(password)
+
+    def verify_password(self, password: str):
+        return pwd_context.verify(password, self.hashed_password)
+
+auth.py 
+from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+from app import schemas, models, db
+from datetime import datetime, timedelta
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from dotenv import load_dotenv
+import os
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi import status
+from typing import Optional
+import uuid
+
+router = APIRouter()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+load_dotenv()
+
+# Add OAuth2 scheme for token validation
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+def get_db():
+    database = db.SessionLocal()
+    try:
+        yield database
+    finally:
+        database.close()
+
+@router.post("/signup", response_model=schemas.UserOut)
+def signup(user: schemas.UserCreate, database: Session = Depends(get_db)):
+    existing = database.query(models.User).filter(models.User.username == user.username).first()
+
+    if existing:
+        raise HTTPException(status_code=400, detail="Username already taken")
+    
+    hashed_pw = pwd_context.hash(user.password)
+    new_user = models.User(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_pw,
+        role=user.role
+    )
+
+    database.add(new_user)
+    database.commit()
+    database.refresh(new_user)
+    return new_user
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_token(token: str, db: Session):
+    try:
+        # Check if token is blacklisted
+        blacklisted = db.query(models.TokenBlacklist).filter(models.TokenBlacklist.token == token).first()
+        if blacklisted:
+            return None
+            
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise JWTError()
+        return username
+    except JWTError:
+        return None
+
+@router.post("/login", response_model=schemas.Token)
+def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == form_data.username).first()
+    if not user or not pwd_context.verify(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.id}, expires_delta=access_token_expires
+    )
+    
+    # Set cookie with token
+    # response.set_cookie(
+    #     key="access_token",
+    #     value=f"Bearer {access_token}",
+    #     httponly=True,
+    #     max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    #     secure=False,  
+    #     samesite='none'
+    # )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        "user_id": user.id,
+    }
+
+@router.post("/logout")
+def logout(response: Response, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        # Add token to blacklist
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        expires_at = datetime.fromtimestamp(payload['exp'])
+        
+        db.add(models.TokenBlacklist(
+            token=token,
+            expires_at=expires_at
+        ))
+        db.commit()
+        
+        # Clear the client-side cookie
+        response.delete_cookie("access_token")
+        
+        return {"message": "Successfully logged out"}
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
+
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    username = verify_token(token, db)
+    if token:
+        username = verify_token(token, db)
+        user = db.query(models.User).filter(models.User.username == username).first()
+        if user:
+            return user
+        
+    guest = models.User(
+        username="guest",
+        email="",
+        hashed_password="",
+        role="guest"
+    )
+    guest.id = 0
+    return guest
+
+@router.post("/guest-login")
+async def guest_login():
+    # Generate a unique guest user ID or use a static one if needed
+    guest_user_id = int(uuid.uuid4())
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode = {
+        "sub": guest_user_id,
+        "role": "guest",
+        "exp": datetime.utcnow() + access_token_expires
+    }
+
+    access_token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+    return JSONResponse(content={
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user_id": guest_user_id
+    })
+    
+cart.html 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,30 +253,6 @@
         h1 { 
             text-align: center; 
             color: #333;
-        }
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .loading-spinner {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #3498db;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
         table { 
             width: 100%; 
@@ -191,6 +397,7 @@
         async function loadCart() {
             try {
                 document.getElementById("cart-content").innerHTML = '<div class="loading">Loading your cart...</div>';
+                
                 // 1. Fetch cart data
                 const cartResponse = await fetch(`/cart/${user_id}`);
                 if (!cartResponse.ok) throw new Error("Failed to load cart");
@@ -287,7 +494,7 @@
                     </label>
                 </div>
                 <div class="cart-actions">
-                    <button class="btn btn-primary" onclick="checkoutCart(${total})">Proceed to Checkout</button>
+                    <button class="btn btn-primary" onclick="checkoutCart()">Proceed to Checkout</button>
                     <button class="btn btn-danger" onclick="clearCart()">Clear Cart</button>
                 </div>
             `;
@@ -315,8 +522,10 @@
         async function removeFromCart(productId) {
             if (!confirm("Remove this item from your cart?")) return;
             try {
-                await fetch(`/cart/remove?user_id=${user_id}&product_id=${productId}`, {
-                    method: 'POST'
+                await fetch('/cart/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id, product_id: productId })
                 });
                 loadCart();
             } catch (err) {
@@ -337,84 +546,17 @@
             }
         }
 
-        // Show/hide loading spinner
-        function showLoading(show) {
-            if (show) {
-                const overlay = document.createElement('div');
-                overlay.className = 'loading-overlay';
-                overlay.innerHTML = '<div class="loading-spinner"></div>';
-                overlay.id = 'loadingOverlay';
-                document.body.appendChild(overlay);
-            } else {
-                const overlay = document.getElementById('loadingOverlay');
-                if (overlay) overlay.remove();
-            }
-        }
-
-        // Stripe Checkout Function
-        async function payWithStripe(amount) {
-            showLoading(true);
-            try {
-                // 1. Get current cart items
-                const cartResponse = await fetch(`/cart/${user_id}`);
-                if (!cartResponse.ok) throw new Error("Failed to load cart");
-                const cartData = await cartResponse.json();
-                
-                // 2. Prepare cart items for metadata
-                const productIds = Object.keys(cartData.cart);
-                const cartItems = await Promise.all(
-                    productIds.map(async (productId) => {
-                        const product = await fetchProductDetails(productId);
-                        return {
-                            product_id: parseInt(productId),
-                            quantity: parseInt(cartData.cart[productId]),
-                            price: product.price
-                        };
-                    })
-                );
-
-                // 3. Create checkout session with metadata
-                const response = await fetch('http://127.0.0.1:8000/stripe/create-checkout-session', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        amount: amount,
-                        product_name: `Order Total (${cartItems.length} items)`,
-                        currency: 'inr',
-                        user_id: parseInt(user_id),
-                        cart: cartItems
-                    })
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || "Payment failed");
-                }
-                
-                const data = await response.json();
-                if (data.checkout_url) {
-                    window.location.href = data.checkout_url;
-                } else {
-                    throw new Error("No checkout URL received");
-                }
-            } catch (err) {
-                console.error("Stripe checkout error:", err);
-                alert("Payment failed: " + err.message);
-            } finally {
-                showLoading(false);
-            }
-        }
-
         // Checkout with selected payment method
-        function checkoutCart(totalAmount) {
+        function checkoutCart() {
+            // Get selected payment method
             const method = document.querySelector('input[name="paymentMethod"]:checked');
             if (!method) {
                 alert("Please select a payment method.");
                 return;
             }
-            
+            // Redirect to your payment endpoint
             if (method.value === "stripe") {
-                payWithStripe(totalAmount);
+                window.location.href = `/checkout/stripe?user_id=${user_id}`;
             } else if (method.value === "paypal") {
                 window.location.href = `/checkout/paypal?user_id=${user_id}`;
             }
@@ -425,3 +567,4 @@
     </script>
 </body>
 </html>
+

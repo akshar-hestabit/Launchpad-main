@@ -59,6 +59,9 @@
       font-weight: 500;
       color: red;
     }
+    .role-disabled {
+      color: #999;
+    }
   </style>
 </head>
 <body>
@@ -70,9 +73,10 @@
       <input type="password" name="password" placeholder="Password" required>
       <select name="role" required>
         <option value="">Select Role</option>
-        <option value="user">User</option>
-        <option value="admin">Admin</option>
+        <option value="vendor">Vendor</option>
         <option value="customer">Customer</option>
+        
+        <option value="admin" disabled class="role-disabled">Admin (disabled)</option>
       </select>
       <button type="submit">Sign Up</button>
       <div id="message"></div>
@@ -83,6 +87,12 @@
     document.getElementById('signup-form').addEventListener('submit', async function (e) {
       e.preventDefault();
       const form = e.target;
+      
+      // Additional client-side validation
+      if (form.role.value === 'admin') {
+        document.getElementById('message').textContent = 'Admin registration is not allowed';
+        return;
+      }
 
       const payload = {
         username: form.username.value,
@@ -110,6 +120,14 @@
         setTimeout(() => window.location.href = '/frontend/login.html', 1500);
       } catch (err) {
         document.getElementById('message').textContent = err.message;
+      }
+    });
+
+    // Prevent selecting disabled admin option
+    document.querySelector('select[name="role"]').addEventListener('change', function() {
+      if (this.value === 'admin') {
+        this.value = '';
+        document.getElementById('message').textContent = 'Admin registration is not allowed';
       }
     });
   </script>

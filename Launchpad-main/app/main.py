@@ -19,10 +19,11 @@ from elasticsearch import Elasticsearch
 from sqlalchemy.orm import Session
 from app.utils.request_logging import log_requests  
 from app.utils.logger import logger
+from prometheus_fastapi_instrumentator import Instrumentator
 from typing import Optional,List
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["20/minute"]
+    default_limits=["5/minute"]
 )
 
 # Initialize FastAPI app
@@ -40,7 +41,7 @@ app.add_middleware(
 )
 app.mount('/frontend', StaticFiles(directory='frontend'), name='frontend')
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
-
+Instrumentator().instrument(app).expose(app, include_in_schema=False)
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
@@ -103,14 +104,14 @@ async def startup_event():
     db.close()
 
 
-# ========== Routes ==========
+# ========== Routes =======-
 app.include_router(otp.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(dashboard.router)
 app.include_router(products.router)
 app.include_router(cart_route.router)
-app.include_router(stripe_payment.router, prefix="/stripe")
+app.include_router(stripe_payment.router)
 app.include_router(stripe_webhook.router)
 app.include_router(paypal_payment.router)
 app.include_router(paypal_webhook.router)
@@ -133,7 +134,7 @@ def health_check():
         "started at": start_time
     }
 
-# Serve frontend static HTML pages
+# frontend static HTML pages
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 @app.get("/login")

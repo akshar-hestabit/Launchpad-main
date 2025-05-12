@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app import schemas, models, db
 from datetime import datetime, timedelta
@@ -9,12 +10,13 @@ import os
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi import status
 from typing import Optional
+import uuid
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 load_dotenv()
 
-# Add OAuth2 scheme for token validation
+#OAuth2 scheme for token validation
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 def get_db():
@@ -84,16 +86,6 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), 
         data={"sub": user.id}, expires_delta=access_token_expires
     )
     
-    # Set cookie with token
-    # response.set_cookie(
-    #     key="access_token",
-    #     value=f"Bearer {access_token}",
-    #     httponly=True,
-    #     max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    #     secure=False,  
-    #     samesite='none'
-    # )
-    
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -114,7 +106,7 @@ def logout(response: Response, token: str = Depends(oauth2_scheme), db: Session 
         ))
         db.commit()
         
-        # Clear the client-side cookie
+        
         response.delete_cookie("access_token")
         
         return {"message": "Successfully logged out"}
@@ -126,13 +118,44 @@ def logout(response: Response, token: str = Depends(oauth2_scheme), db: Session 
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     username = verify_token(token, db)
-    if not username:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+    if token:
+        username = verify_token(token, db)
+        user = db.query(models.User).filter(models.User.username == username).first()
+        if user:
+            return user
+        
+    guest = models.User(
+        username="guest",
+        email="",
+        hashed_password="",
+        role="guest"
+    )
+    guest.id = 0
+    return guest
+
+@router.post("/guest-login")
+def guest_login(database: Session = Depends(get_db)):
+    guest_user = models.User(
+        username=f"guest_{int(datetime.utcnow().timestamp())}",
+        email=None,
+        hashed_password=None,
+        role="guest"
+    )
+    database.add(guest_user)
+    database.commit()
+    database.refresh(guest_user)
+
+    # Generate access token for the guest user
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode = {
+        "sub": guest_user.id,
+        "role": "guest",
+        "exp": datetime.utcnow() + access_token_expires
+    }
+    access_token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+    return JSONResponse(content={
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user_id": guest_user.id
+    })

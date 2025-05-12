@@ -56,10 +56,15 @@ def search_products(
     try:
         response = es.search(index=INDEX_NAME, body=query_body)
         hits = response["hits"]["hits"]
-        results = [hit["_source"] for hit in hits]
+        results = []
+        for hit in hits:
+            product = hit["_source"]
+            product["id"] = hit["_id"]  # <-- Add this line
+            results.append(product)
         return {"results": results}
     except Exception as e:
         return {"error": str(e)}
+
 
 @router.get("/search-page")
 async def serve_search_page():

@@ -14,8 +14,8 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)  # Primary key = already indexed
     username = Column(String, index=True, unique=True, nullable=False)  # Search/login
-    email = Column(String, index=True, unique=True, nullable=False)     # Search/login
-    hashed_password = Column(String, nullable=False)
+    email = Column(String, index=True, unique=True, nullable=True)     # Search/login
+    hashed_password = Column(String, nullable=True)
     role = Column(String, nullable=False)
 
     orders = relationship("Order", back_populates="user", cascade="all, delete")

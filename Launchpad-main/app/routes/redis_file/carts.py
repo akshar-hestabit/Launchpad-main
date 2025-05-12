@@ -13,17 +13,16 @@ CART_EXPIRATION_SECONDS = 60 * 30
 def add_to_cart(user_id: int, product_id: int, quantity: int):
     cart_key = f"cart:{user_id}"
 
-    # Check if cart already exists
+
     cart = r.hgetall(cart_key)
 
-    # If cart exists, update it
+
     if str(product_id) in cart:
         current_quantity = int(cart[str(product_id)])
         r.hset(cart_key, product_id, current_quantity + quantity)
     else:
         r.hset(cart_key, product_id, quantity)
 
-    # Important: Reset expiration on every add_to_cart
     r.expire(cart_key, CART_EXPIRATION_SECONDS)
 
     return {"message": "Product added to cart."}
@@ -40,5 +39,5 @@ def view_cart(user_id: int):
     return cart
 
 def clear_cart(user_id: int):
-    r.delete(f"cart: {user_id}")
+    r.delete(f"cart:{user_id}")
     return {"message" : "cart cleared successfully "}
