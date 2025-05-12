@@ -14,54 +14,41 @@
       display: flex; align-items: center; justify-content: center;
     }
     .form-container {
-      background-color: rgba(255, 255, 255, 0.8);
+      background-color: rgba(255,255,255,0.85);
       border-radius: 10px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-      padding: 2rem;
-      width: 90%;
-      max-width: 400px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      padding: 2rem; width: 90%; max-width: 400px;
+      position: relative;
     }
     h2 {
-      text-align: center;
-      color: #333;
-      margin-bottom: 1.5rem;
+      text-align: center; color: #333; margin-bottom: 1.5rem;
     }
-    input[type="text"],
-    input[type="email"],
-    input[type="password"],
-    select {
-      width: 100%;
-      padding: 0.75rem;
-      margin-bottom: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      font-size: 1rem;
+    input, select {
+      width: 100%; padding: 0.75rem; margin-bottom: 1rem;
+      border: 1px solid #ccc; border-radius: 5px; font-size: 1rem;
       box-sizing: border-box;
     }
     button {
-      width: 100%;
-      padding: 0.75rem;
-      background-color: #007bff;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-      font-size: 1rem;
-      cursor: pointer;
+      width: 100%; padding: 0.75rem;
+      background-color: #007bff; color: #fff; border: none;
+      border-radius: 5px; font-size: 1rem; cursor: pointer;
       transition: background 0.3s ease, box-shadow 0.3s ease;
     }
     button:hover {
-      background-color: #0056b3;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      background-color: #0056b3; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
     #message {
-      margin-top: 1rem;
-      text-align: center;
-      font-weight: 500;
-      color: red;
+      margin-top: 1rem; text-align: center; font-weight: 500; color: #d9534f;
     }
-    .role-disabled {
-      color: #999;
+    #verification-info {
+      margin-top: 1.5rem; text-align: center; color: #333;
     }
+    #resend-btn {
+      margin-top: 0.5rem; font-size: 0.9rem;
+      background: transparent; color: #007bff; border: none; cursor: pointer;
+    }
+    #resend-btn:hover { text-decoration: underline; }
+    .role-disabled { color: #999; }
   </style>
 </head>
 <body>
@@ -75,59 +62,84 @@
         <option value="">Select Role</option>
         <option value="vendor">Vendor</option>
         <option value="customer">Customer</option>
-        
         <option value="admin" disabled class="role-disabled">Admin (disabled)</option>
       </select>
       <button type="submit">Sign Up</button>
       <div id="message"></div>
+      <div id="verification-info" style="display:none;">
+        <p>Thank you for signing up! 🙌</p>
+        <p>Please check your email for a verification link.</p>
+        <button id="resend-btn">Resend Verification Email</button>
+      </div>
     </form>
   </div>
 
   <script>
-    document.getElementById('signup-form').addEventListener('submit', async function (e) {
+    const signupForm = document.getElementById('signup-form');
+    const messageDiv = document.getElementById('message');
+    const verificationInfo = document.getElementById('verification-info');
+    const resendBtn = document.getElementById('resend-btn');
+
+    signupForm.addEventListener('submit', async function (e) {
       e.preventDefault();
-      const form = e.target;
-      
-      // Additional client-side validation
-      if (form.role.value === 'admin') {
-        document.getElementById('message').textContent = 'Admin registration is not allowed';
+      messageDiv.textContent = '';
+
+      if (signupForm.role.value === 'admin') {
+        messageDiv.textContent = 'Admin registration is not allowed';
         return;
       }
 
       const payload = {
-        username: form.username.value,
-        email: form.email.value,
-        password: form.password.value,
-        role: form.role.value
+        username: signupForm.username.value,
+        email: signupForm.email.value,
+        password: signupForm.password.value,
+        role: signupForm.role.value
       };
 
       try {
         const res = await fetch('/signup', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data.detail || "Signup failed");
+          throw new Error(data.detail || 'Signup failed');
         }
 
-        document.getElementById('message').textContent = 'Signup successful! Redirecting...';
-        setTimeout(() => window.location.href = '/frontend/login.html', 1500);
+        // Disable form inputs and show verification info
+        Array.from(signupForm.elements).forEach(el => el.disabled = true);
+        verificationInfo.style.display = 'block';
       } catch (err) {
-        document.getElementById('message').textContent = err.message;
+        messageDiv.textContent = err.message;
+      }
+    });
+
+    // Resend verification email
+    resendBtn.addEventListener('click', async () => {
+      const email = signupForm.email.value;
+      messageDiv.textContent = '';
+      try {
+        const res = await fetch('/verify/resend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        if (!res.ok) throw new Error('Could not resend verification email');
+        messageDiv.style.color = 'green';
+        messageDiv.textContent = 'Verification email resent!';
+      } catch (err) {
+        messageDiv.style.color = 'red';
+        messageDiv.textContent = err.message;
       }
     });
 
     // Prevent selecting disabled admin option
-    document.querySelector('select[name="role"]').addEventListener('change', function() {
+    signupForm.role.addEventListener('change', function() {
       if (this.value === 'admin') {
         this.value = '';
-        document.getElementById('message').textContent = 'Admin registration is not allowed';
+        messageDiv.textContent = 'Admin registration is not allowed';
       }
     });
   </script>

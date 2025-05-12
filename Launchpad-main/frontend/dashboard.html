@@ -51,7 +51,8 @@
         <a href="/frontend/wishlist.html" class="btn">View Wishlist</a>
         <a href="/frontend/invoice.html" class="btn">Get Invoice</a>
         <a href="/frontend/products.html" class="btn">Products</a>
-        <a href="/frontend/search.html" class="btn">Search</a> <!-- ✅ Added Search Page -->
+        <a href="/frontend/search.html" class="btn">Search</a> 
+        <a href="/frontend/admin.html" class="btn">Admin Page</a>
         <a href="#" id="logoutBtn" class="btn">Logout</a>
 
         <!-- User Info -->
@@ -61,22 +62,22 @@
     <script>
         const token = localStorage.getItem('auth_token');
         const userId = localStorage.getItem('user_id');
-        const userName = localStorage.getItem('user_name'); // ✅ New: Get username
+        const userName = localStorage.getItem('user_name'); 
         const logoutBtn = document.getElementById('logoutBtn');
         const userInfo = document.getElementById('userInfo');
 
-        // ✅ Show welcome message with username (fallback to user ID)
+        
         if (userName) {
             userInfo.textContent = `Welcome, ${userName}! (User ID: ${userId})`;
         } else if (userId) {
             userInfo.textContent = `Logged in as User ID: ${userId}`;
         }
 
-        // Logout functionality
+        
         logoutBtn.addEventListener('click', () => {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_id');
-            localStorage.removeItem('user_name'); // ✅ Clear name on logout
+            localStorage.removeItem('user_name'); 
             window.location.href = '/static/login.html';
         });
     </script>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>All Users</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #333;
+      color: #fff;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { margin: 0; font-size: 1.2rem; }
+    header nav button {
+      margin-left: 8px;
+      padding: 8px 16px;
+      background: #007BFF;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    header nav button:hover { background: #0056b3; }
+    .container {
+      text-align: center;
+      margin-top: 50px;
+    }
+    .container table {
+      width: 80%;
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+    .container table th, .container table td {
+      padding: 12px;
+      border: 1px solid #ddd;
+    }
+    .container table th {
+      background-color: #007BFF;
+      color: white;
+    }
+    .container table tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    .error-message {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>All Users</h1>
+    <nav>
+      <button onclick="logout()">Logout</button>
+    </nav>
+  </header>
+
+  <div class="container">
+    <h2>All Users</h2>
+    <div id="error-message" class="error-message" style="display: none;"></div>
+    <table id="users-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Created At</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="5">Loading users...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const API_URL = 'http://127.0.0.1:8000';  // Adjust this if necessary
+    const token = localStorage.getItem('auth_token');
+    
+    if (!token) {
+      alert('Please log in first.');
+      window.location.href = '/login';
+    }
+
+    async function fetchUsers() {
+      try {
+        const res = await fetch(`${API_URL}/users`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (res.status === 403) throw new Error('You do not have permission to view users');
+        if (!res.ok) throw new Error(`Failed to fetch users: ${res.statusText}`);
+
+        const users = await res.json();
+        const tableBody = document.getElementById('users-table').getElementsByTagName('tbody')[0];
+        
+        if (!users?.length) {
+          tableBody.innerHTML = '<tr><td colspan="5">No users found.</td></tr>';
+          return;
+        }
+
+        tableBody.innerHTML = users.map(user => `
+          <tr>
+            <td>${user.id}</td>
+            <td>${user.name}</td>
+            <td>${user.email}</td>
+            <td>${user.role}</td>
+            <td>${new Date(user.created_at).toLocaleString()}</td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('error-message').textContent = error.message;
+        document.getElementById('error-message').style.display = 'block';
+        document.getElementById('users-table').getElementsByTagName('tbody')[0].innerHTML = '';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('auth_token');
+      alert('Logged out');
+      window.location.href = '/login';
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', fetchUsers);
+  </script>
+</body>
+</html>

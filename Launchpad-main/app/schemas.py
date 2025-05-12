@@ -3,6 +3,13 @@
 from pydantic import BaseModel, EmailStr 
 from typing import Literal
 from datetime import datetime
+#---------Address Schemas ---------#
+class AddressCreate(BaseModel):
+    street: str
+    city: str
+    state: str
+    postal_code: str
+    country: str
 
 # -------- User Schemas -------- #
 
@@ -11,13 +18,14 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     role: str | None = "customer"
+    address: AddressCreate
 
 class UserOut(BaseModel):
     id: int
     username: str
     email: EmailStr
-    role: str
-
+    role: Literal["customer", "vendor", "admin", "guest"] = "customer"
+    address: AddressCreate
     model_config = {
         "from_attributes": True
     }
@@ -62,7 +70,6 @@ class ProductBase(BaseModel):
     brand: str | None = None
 
 class ProductCreate(BaseModel):
-    id: int
     name: str
     description: str | None = None
     price: float
@@ -80,7 +87,7 @@ class ProductOut(BaseModel):
     price: float
     quantity: int
     category_id: int
-    brand: str | None=None        # changed from brand: Optional[str]
+    brand: str | None=None       
 
     model_config = {
         "from_attributes": True
@@ -135,3 +142,5 @@ class WishlistResponse(WishlistBase):
 
     class Config:
         orm_mode = True
+
+

@@ -57,6 +57,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def verify_token(token: str, db: Session):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+    )
+
     try:
         # Check if token is blacklisted
         blacklisted = db.query(models.TokenBlacklist).filter(models.TokenBlacklist.token == token).first()
@@ -64,12 +69,14 @@ def verify_token(token: str, db: Session):
             return None
             
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise JWTError()
-        return username
+        user_id: int = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+        
     except JWTError:
-        return None
+        raise credentials_exception
+    
+    user = db.query(models.User).filter(models.User.id == user_id).first()
 
 @router.post("/login", response_model=schemas.Token)
 def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -83,14 +90,17 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), 
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.id}, expires_delta=access_token_expires
+        data={"sub": user.id, "role":user.role}, expires_delta=access_token_expires
     )
+    print({"access_token": access_token})
+    
     
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         "user_id": user.id,
+        "role":user.role,
     }
 
 @router.post("/logout")
@@ -117,21 +127,25 @@ def logout(response: Response, token: str = Depends(oauth2_scheme), db: Session 
         )
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    username = verify_token(token, db)
-    if token:
-        username = verify_token(token, db)
-        user = db.query(models.User).filter(models.User.username == username).first()
-        if user:
-            return user
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
         
-    guest = models.User(
-        username="guest",
-        email="",
-        hashed_password="",
-        role="guest"
-    )
-    guest.id = 0
-    return guest
+        user = db.query(models.User).filter(models.User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        return user  
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+@router.get("/verify-admin")
+def verify_admin(user: models.User = Depends(get_current_user)):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized as admin")
+    return {"is_admin": True}
+
 
 @router.post("/guest-login")
 def guest_login(database: Session = Depends(get_db)):

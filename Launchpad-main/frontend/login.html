@@ -129,6 +129,8 @@
 
                     if (data.access_token) {
                         localStorage.setItem('auth_token', data.access_token);
+                        localStorage.setItem("user_id", data.userId);
+                        localStorage.setItem("role", data.role);
                     }
 
                     let userId = null;

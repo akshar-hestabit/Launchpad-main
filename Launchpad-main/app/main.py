@@ -23,7 +23,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from typing import Optional,List
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["5/minute"]
+    default_limits=["50/minute"]
 )
 
 # Initialize FastAPI app

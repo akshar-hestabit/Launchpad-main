@@ -1,25 +1,26 @@
 # Module: app/models.py
-# Brief: TODO - add description
 
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
+
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db import Base
-from passlib.context import CryptContext  # For password hashing
+from passlib.context import CryptContext  #
 
-# Setup the password hashing context
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class User(Base):
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)  # Primary key = already indexed
-    username = Column(String, index=True, unique=True, nullable=False)  # Search/login
-    email = Column(String, index=True, unique=True, nullable=True)     # Search/login
+    id = Column(Integer, primary_key=True, index=True)  
+    username = Column(String, index=True, unique=True, nullable=False)  
+    email = Column(String, index=True, unique=True, nullable=True)     
     hashed_password = Column(String, nullable=True)
     role = Column(String, nullable=False)
-
+    is_verified = Column(Boolean, default=False)
     orders = relationship("Order", back_populates="user", cascade="all, delete")
     wishlist = relationship("Wishlist", back_populates="user", cascade="all, delete")
+    addresses = relationship("Address", back_populates="user")
 
     def set_password(self, password: str):
         self.hashed_password = pwd_context.hash(password)
@@ -29,20 +30,20 @@ class User(Base):
 
 class Category(Base):
     __tablename__ = "categories"
-    id = Column(Integer, primary_key=True, index=True)  # Primary key
-    name = Column(String, unique=True, index=True, nullable=False)  # Filter/search by category name
+    id = Column(Integer, primary_key=True, index=True)  
+    name = Column(String, unique=True, index=True, nullable=False)  
 
     products = relationship("Products", back_populates="category", cascade="all, delete")
 
 class Products(Base):
     __tablename__ = "products"
-    id = Column(Integer, primary_key=True, index=True)  # Primary key
-    name = Column(String, index=True, nullable=False)  # Search by product name
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)  
+    name = Column(String, index=True, nullable=False)  
     description = Column(String, nullable=True)
     price = Column(Float, nullable=False)
     quantity = Column(Integer, nullable=False)
-    brand = Column(String, index=True, nullable=True)  # Filter by brand
-    category_id = Column(Integer, ForeignKey("categories.id"), index=True, nullable=False)  # Filter by category
+    brand = Column(String, index=True, nullable=True)  
+    category_id = Column(Integer, ForeignKey("categories.id"), index=True, nullable=False) 
 
     category = relationship("Category", back_populates="products")
     wishlists = relationship("Wishlist", back_populates="product", cascade="all, delete")
@@ -50,8 +51,8 @@ class Products(Base):
 class Wishlist(Base):
     __tablename__ = "wishlist"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)  # Look up by user
-    product_id = Column(Integer, ForeignKey("products.id"), index=True, nullable=False)  # Look up by product
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)  
+    product_id = Column(Integer, ForeignKey("products.id"), index=True, nullable=False)  
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="wishlist")
@@ -60,10 +61,10 @@ class Wishlist(Base):
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)  # Filter by user
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)  
     total_price = Column(Float, nullable=False)
     status = Column(String, default="PENDING")
-    created_at = Column(DateTime(timezone=True), index=True, server_default=func.now())  # Sort by date
+    created_at = Column(DateTime(timezone=True), index=True, server_default=func.now())  
     payment_method = Column(String, nullable=False, default="CARD")
 
     order_items = relationship("OrderItem", back_populates="order", cascade="all, delete")
@@ -73,13 +74,25 @@ class Order(Base):
 class OrderItem(Base):
     __tablename__ = "order_items"
     id = Column(Integer, primary_key=True, index=True)
-    order_id = Column(Integer, ForeignKey("orders.id"), index=True, nullable=False)  # Join/fetch invoice
-    product_id = Column(Integer, ForeignKey("products.id"), index=True, nullable=False)  # Join/fetch product
+    order_id = Column(Integer, ForeignKey("orders.id"), index=True, nullable=False)  
+    product_id = Column(Integer, ForeignKey("products.id"), index=True, nullable=False)  
     price_at_purchase = Column(Float, nullable=False)
     quantity = Column(Integer, nullable=False)
 
     order = relationship("Order", back_populates="order_items")
     product = relationship("Products")
+
+class Address(Base):
+    __tablename__ = "addresses"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    street = Column(String, nullable=False)
+    city = Column(String, nullable=False)
+    state = Column(String, nullable=False)
+    country = Column(String, nullable=False)
+    zip_code = Column(String, nullable=False)
+    user = relationship("User", back_populates="addresses")
+
 
 class TokenBlacklist(Base):
     __tablename__ = "token_blacklist"
