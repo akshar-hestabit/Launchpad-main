@@ -60,12 +60,6 @@
 
   <script>
     const API_URL = 'http://127.0.0.1:8000';
-    const TOKEN = localStorage.getItem('auth_token');
-    
-    if (!TOKEN) {
-      showError('Please log in first.');
-      setTimeout(() => window.location.href = '/login', 2000);
-    }
 
     function showError(message) {
       const errorDiv = document.getElementById('error-message');
@@ -77,53 +71,13 @@
       document.getElementById('error-message').style.display = 'none';
     }
 
-    async function verifyAdmin() {
-      try {
-        const res = await fetch(`${API_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${TOKEN}` }
-        });
-        
-        if (!res.ok) {
-          if (res.status === 401) {
-            // Token expired or invalid
-            localStorage.removeItem('auth_token');
-            window.location.href = '/login';
-          }
-          throw new Error('Failed to verify admin status');
-        }
-        
-        console.log("---------------debug---------------")
-        const user = await res.json();
-        return user.role === 'admin';
-        console.log(user.role)
-      } catch (error) {
-        console.error('Admin verification error:', error);
-        return false;
-      }
-    }
-
     async function fetchOrders() {
       try {
         hideError();
         document.getElementById('orders-list').innerHTML = '<p class="loading">Loading orders...</p>';
-        
-        const isAdmin = await verifyAdmin();
-        if (!isAdmin) {
-          showError('Access denied: Admin privileges required');
-          document.getElementById('orders-list').innerHTML = '';
-          return;
-        }
 
-        const res = await fetch(`${API_URL}/orders/all_orders`, {
-          headers: { Authorization: `Bearer ${TOKEN}` }
-        });
-
-        if (res.status === 401) {
-          // Token expired or invalid
-          localStorage.removeItem('auth_token');
-          window.location.href = '/login';
-          return;
-        }
+        // Bypass admin check
+        const res = await fetch(`${API_URL}/orders/all_orders`);
 
         if (!res.ok) {
           throw new Error(`Failed to fetch orders: ${res.statusText}`);
@@ -179,16 +133,9 @@
           method: 'PUT',
           headers: { 
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${TOKEN}` 
           },
           body: JSON.stringify({ status: newStatus })
         });
-
-        if (res.status === 401) {
-          localStorage.removeItem('auth_token');
-          window.location.href = '/login';
-          return;
-        }
 
         if (!res.ok) {
           const err = await res.json();

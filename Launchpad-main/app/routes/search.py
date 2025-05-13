@@ -59,7 +59,7 @@ def search_products(
         results = []
         for hit in hits:
             product = hit["_source"]
-            product["id"] = hit["_id"]  # <-- Add this line
+            product["id"] = hit["_id"] 
             results.append(product)
         return {"results": results}
     except Exception as e:

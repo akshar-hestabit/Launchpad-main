@@ -193,7 +193,7 @@ async def verify_otp_route(request: OTPVerifyRequest, background_tasks: Backgrou
     is_valid = verify_otp(request.email, request.otp)
     
     if is_valid:
-        # Send success notification in background
+        
         background_tasks.add_task(send_success_notification, request.email)
         return {"message": "OTP verified successfully"}
     else:

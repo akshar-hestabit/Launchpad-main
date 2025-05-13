@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Payment Success</title>
+</head>
+<body>
+  <h1>Processing your payment...</h1>
+  <script>
+    const query = new URLSearchParams(window.location.search);
+    const orderId = query.get('token'); // PayPal sends order ID as "token"
+
+    if (orderId) {
+      fetch(`http://localhost:8000/paypal/capture-order/${orderId}`, {
+        method: "POST"
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.body.innerHTML = `
+          <h2>✅ Payment Captured Successfully!</h2>
+          <pre>${JSON.stringify(data, null, 2)}</pre>`;
+      })
+      .catch(err => {
+        document.body.innerHTML = `<h2>❌ Payment Failed!</h2><pre>${err}</pre>`;
+      });
+    } else {
+      document.body.innerHTML = "<h2>❌ No order token found in URL.</h2>";
+    }
+  </script>
+</body>
+</html>

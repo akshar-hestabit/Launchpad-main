@@ -6,7 +6,6 @@ async def log_requests(request: Request, call_next):
     """Middleware to log all incoming API requests."""
     start_time = time.time()
     
-    # Log request details
     logger.info(f"Request: {request.method} {request.url.path}")
     logger.debug(f"Headers: {dict(request.headers)}")
     logger.debug(f"Query Params: {dict(request.query_params)}")

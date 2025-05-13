@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from app.auth import get_db
 from app.schemas import OrderCreate, OrderItemCreate
-from app.routes.order_management import create_order  # Adjust import based on your project
+from app.routes.order_management import create_order  
 
 load_dotenv()
 
@@ -70,7 +70,7 @@ async def paypal_webhook_listener(request: Request, db: Session = Depends(get_db
     print(f"PayPal Webhook Received - Event: {event_type}")
 
     if event_type == "PAYMENT.CAPTURE.COMPLETED":
-        # Extract info from webhook
+    
         purchase_unit = resource.get("purchase_units", [{}])[0]
         user_id = int(purchase_unit.get("custom_id"))
         items = purchase_unit.get("items", [])
@@ -78,7 +78,7 @@ async def paypal_webhook_listener(request: Request, db: Session = Depends(get_db
         payment_method = "PAYPAL"
         status = "COMPLETED"
 
-        # Prepare items for OrderCreate
+
         order_items = [OrderItemCreate(product_id=int(item["product_id"]), quantity=int(item["quantity"])) for item in items]
 
         order_data = OrderCreate(

@@ -14,11 +14,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 router = APIRouter()
 
 def decode_jwt(token: str):
-    return {"user_id": 1, "role": "admin"}  # Mock data, replace with actual decoding logic
+    return {"user_id": 1, "role": "admin"}  
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
-        return decode_jwt(token)  # Replace with your JWT decoding logic
+        return decode_jwt(token)  
     except Exception as e:
         raise HTTPException(status_code=403, detail="Could not validate credentials")
 
@@ -95,7 +95,7 @@ def add_new_product(product: schemas.ProductCreate, db: Session = Depends(get_db
         "description": new_product.description,
         "price": new_product.price,
         "quantity": new_product.quantity,
-        "category": new_product.category_id,
+        "category_id": new_product.category_id,
         "brand": new_product.brand,
     }
     
@@ -125,7 +125,7 @@ def update_product(
         "description": product.description,
         "price": product.price,
         "quantity": product.quantity,
-        "category": product.category,
+        "category_id": product.category_id,
         "brand": product.brand,
     }
     

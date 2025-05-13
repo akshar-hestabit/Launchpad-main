@@ -9,7 +9,7 @@ router = APIRouter(prefix="/paypal", tags=["PayPal"])
 
 PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID")
 PAYPAL_SECRET = os.getenv("PAYPAL_SECRET")
-PAYPAL_API_BASE = "https://api-m.sandbox.paypal.com"  # Use sandbox for testing
+PAYPAL_API_BASE = "https://api-m.sandbox.paypal.com"  
 
 def get_paypal_access_token():
     url = f"{PAYPAL_API_BASE}/v1/oauth2/token"
@@ -39,8 +39,8 @@ def create_paypal_order(
                 "currency_code": "USD",
                 "value": amount
             },
-            "custom_id": str(user_id),  # Store user_id for webhook
-            "items": items              # Store cart items for webhook
+            "custom_id": str(user_id),  
+            "items": items              
         }],
         "application_context": {
             "return_url": "http://localhost:3000/payment-success",

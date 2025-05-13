@@ -23,9 +23,9 @@ class UserCreate(BaseModel):
 class UserOut(BaseModel):
     id: int
     username: str
-    email: EmailStr
+    email: EmailStr | None = None
     role: Literal["customer", "vendor", "admin", "guest"] = "customer"
-    address: AddressCreate
+    address: AddressCreate | None = None
     model_config = {
         "from_attributes": True
     }

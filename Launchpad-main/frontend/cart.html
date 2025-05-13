@@ -20,10 +20,7 @@
             border-radius: 8px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        h1 { 
-            text-align: center; 
-            color: #333;
-        }
+        h1 { text-align: center; color: #333; }
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -48,84 +45,21 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 20px;
-        }
-        th, td { 
-            padding: 12px; 
-            text-align: center; 
-            border-bottom: 1px solid #eee;
-        }
-        th { 
-            background: #f0f0f0;
-            font-weight: bold;
-        }
-        .total-row td { 
-            font-weight: bold; 
-            background: #f9f9f9;
-        }
-        .actions button { 
-            background: #007bff; 
-            color: #fff; 
-            border: none; 
-            padding: 8px 14px; 
-            border-radius: 4px; 
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .actions button:hover { 
-            background: #0056b3; 
-        }
-        .empty { 
-            text-align: center; 
-            color: #888; 
-            margin: 40px 0;
-            padding: 20px;
-        }
-        .back-link { 
-            display: inline-block; 
-            margin-bottom: 20px; 
-            color: #007bff; 
-            text-decoration: none;
-            font-size: 14px;
-        }
-        .back-link:hover { 
-            text-decoration: underline;
-        }
-        .btn { 
-            display: inline-block; 
-            margin: 5px 0; 
-            padding: 10px 20px; 
-            border-radius: 4px; 
-            border: none; 
-            cursor: pointer; 
-            font-size: 16px;
-            transition: opacity 0.3s;
-        }
-        .btn-primary { 
-            background: #007bff; 
-            color: #fff;
-        }
-        .btn-danger { 
-            background: #dc3545; 
-            color: #fff;
-        }
-        .cart-actions { 
-            text-align: right; 
-            margin-top: 20px; 
-        }
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-        input[type="number"] {
-            width: 60px;
-            padding: 5px;
-            text-align: center;
-        }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; }
+        th { background: #f0f0f0; font-weight: bold; }
+        .total-row td { font-weight: bold; background: #f9f9f9; }
+        .actions button { background: #007bff; color: #fff; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; transition: background 0.3s; }
+        .actions button:hover { background: #0056b3; }
+        .empty { text-align: center; color: #888; margin: 40px 0; padding: 20px; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #007bff; text-decoration: none; font-size: 14px; }
+        .back-link:hover { text-decoration: underline; }
+        .btn { display: inline-block; margin: 5px 0; padding: 10px 20px; border-radius: 4px; border: none; cursor: pointer; font-size: 16px; transition: opacity 0.3s; }
+        .btn-primary { background: #007bff; color: #fff; }
+        .btn-danger { background: #dc3545; color: #fff; }
+        .cart-actions { text-align: right; margin-top: 20px; }
+        .loading { text-align: center; padding: 20px; color: #666; }
+        input[type="number"] { width: 60px; padding: 5px; text-align: center; }
         .payment-methods {
             margin-top: 18px;
             margin-bottom: 10px;
@@ -139,18 +73,9 @@
             margin-right: 6px;
         }
         @media (max-width: 600px) {
-            .cart-container {
-                padding: 10px;
-            }
-            table th, table td {
-                padding: 6px;
-            }
-            .cart-actions {
-                text-align: center;
-            }
-            .payment-methods {
-                text-align: center;
-            }
+            .cart-container { padding: 10px; }
+            table th, table td { padding: 6px; }
+            .cart-actions, .payment-methods { text-align: center; }
         }
     </style>
 </head>
@@ -164,18 +89,16 @@
     </div>
 
     <script>
-        // Get user ID from localStorage
-        const user_id = localStorage.getItem('user_id');
-        if (!user_id) {
-            window.location.href = '/login'; // Redirect if not logged in
+        // Get user ID from localStorage and convert to integer
+        const user_id = parseInt(localStorage.getItem('user_id'), 10);
+        if (!user_id || isNaN(user_id)) {
+            window.location.href = '/login';
         }
 
-        // Format currency as INR
         function formatINR(amount) {
             return "₹" + amount.toFixed(2);
         }
 
-        // Fetch product details
         async function fetchProductDetails(productId) {
             try {
                 const response = await fetch(`/products/${productId}`);
@@ -187,16 +110,13 @@
             }
         }
 
-        // Load and render the cart
         async function loadCart() {
             try {
                 document.getElementById("cart-content").innerHTML = '<div class="loading">Loading your cart...</div>';
-                // 1. Fetch cart data
                 const cartResponse = await fetch(`/cart/${user_id}`);
                 if (!cartResponse.ok) throw new Error("Failed to load cart");
                 const cartData = await cartResponse.json();
 
-                // 2. Get product details for each item
                 const productIds = Object.keys(cartData.cart);
                 const cartItems = await Promise.all(
                     productIds.map(async (productId) => {
@@ -210,7 +130,6 @@
                     })
                 );
 
-                // 3. Render the cart
                 renderCart({ items: cartItems });
             } catch (err) {
                 console.error("Cart loading error:", err);
@@ -223,7 +142,6 @@
             }
         }
 
-        // Render the cart
         function renderCart(cart) {
             const cartDiv = document.getElementById("cart-content");
             if (!cart?.items || cart.items.length === 0) {
@@ -293,7 +211,6 @@
             `;
         }
 
-        // Update item quantity
         async function updateQuantity(productId, newQuantity) {
             try {
                 await fetch('/cart/update', {
@@ -311,7 +228,6 @@
             }
         }
 
-        // Remove item from cart
         async function removeFromCart(productId) {
             if (!confirm("Remove this item from your cart?")) return;
             try {
@@ -324,20 +240,16 @@
             }
         }
 
-        // Clear entire cart
         async function clearCart() {
             if (!confirm("Are you sure you want to clear your entire cart?")) return;
             try {
-                await fetch(`/cart/delete?user_id=${user_id}`, { 
-                    method: 'DELETE' 
-                });
+                await fetch(`/cart/delete?user_id=${user_id}`, { method: 'DELETE' });
                 loadCart();
             } catch (err) {
                 alert("Failed to clear cart. Please try again.");
             }
         }
 
-        // Show/hide loading spinner
         function showLoading(show) {
             if (show) {
                 const overlay = document.createElement('div');
@@ -351,16 +263,13 @@
             }
         }
 
-        // Stripe Checkout Function
         async function payWithStripe(amount) {
             showLoading(true);
             try {
-                // 1. Get current cart items
                 const cartResponse = await fetch(`/cart/${user_id}`);
                 if (!cartResponse.ok) throw new Error("Failed to load cart");
                 const cartData = await cartResponse.json();
-                
-                // 2. Prepare cart items for metadata
+
                 const productIds = Object.keys(cartData.cart);
                 const cartItems = await Promise.all(
                     productIds.map(async (productId) => {
@@ -373,7 +282,6 @@
                     })
                 );
 
-                // 3. Create checkout session with metadata
                 const response = await fetch('http://127.0.0.1:8000/stripe/create-checkout-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -381,16 +289,16 @@
                         amount: amount,
                         product_name: `Order Total (${cartItems.length} items)`,
                         currency: 'inr',
-                        user_id: parseInt(user_id),
+                        user_id: user_id,
                         cart: cartItems
                     })
                 });
-                
+
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.detail || "Payment failed");
                 }
-                
+
                 const data = await response.json();
                 if (data.checkout_url) {
                     window.location.href = data.checkout_url;
@@ -405,14 +313,13 @@
             }
         }
 
-        // Checkout with selected payment method
         function checkoutCart(totalAmount) {
             const method = document.querySelector('input[name="paymentMethod"]:checked');
             if (!method) {
                 alert("Please select a payment method.");
                 return;
             }
-            
+
             if (method.value === "stripe") {
                 payWithStripe(totalAmount);
             } else if (method.value === "paypal") {
@@ -420,7 +327,6 @@
             }
         }
 
-        // Initialize on page load
         document.addEventListener('DOMContentLoaded', loadCart);
     </script>
 </body>

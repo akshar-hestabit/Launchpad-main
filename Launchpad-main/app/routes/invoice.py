@@ -107,7 +107,7 @@ def download_user_invoices(user_id: int, db: Session = Depends(get_db)):
         pdf.setFont("Helvetica-Bold", 12)
         pdf.drawString(50, y, f"Total Price: ${order.total_price:.2f}")
 
-        pdf.showPage()  # Move to next page for the next order
+        pdf.showPage()  
 
     pdf.save()
     buffer.seek(0)

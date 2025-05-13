@@ -53,6 +53,10 @@
     .error-message {
       color: red;
       font-weight: bold;
+      margin: 20px;
+      padding: 10px;
+      background-color: #f8d7da;
+      border-radius: 5px;
     }
   </style>
 </head>
@@ -64,7 +68,6 @@
     </nav>
   </header>
 
-  
   <div class="container">
     <h2>All Users</h2>
     <div id="error-message" class="error-message" style="display: none;"></div>
@@ -72,66 +75,76 @@
       <thead>
         <tr>
           <th>ID</th>
-          <th>Name</th>
+          <th>Username</th>
           <th>Email</th>
           <th>Role</th>
-          <th>Created At</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td colspan="5">Loading users...</td></tr>
+        <tr><td colspan="4">Loading users...</td></tr>
       </tbody>
     </table>
   </div>
 
   <script>
-    const API_URL = 'http://127.0.0.1:8000';  // Adjust this if necessary
-    const token = localStorage.getItem('auth_token');
+    const API_URL = 'http://127.0.0.1:8000';
+    const TOKEN = localStorage.getItem('auth_token');
     
-    if (!token) {
-      alert('Please log in first.');
-      window.location.href = '/login';
+    if (!TOKEN) {
+      showError('Please log in first.');
+      setTimeout(() => window.location.href = '/login', 2000);
+      return ;
     }
 
-    async function fetchUsers() {
-      try {
-        const res = await fetch(`${API_URL}/users`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+    function showError(message) {
+      const errorDiv = document.getElementById('error-message');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+    }
 
-        if (res.status === 403) throw new Error('You do not have permission to view users');
-        if (!res.ok) throw new Error(`Failed to fetch users: ${res.statusText}`);
-
-        const users = await res.json();
-        const tableBody = document.getElementById('users-table').getElementsByTagName('tbody')[0];
-        
-        if (!users?.length) {
-          tableBody.innerHTML = '<tr><td colspan="5">No users found.</td></tr>';
-          return;
-        }
-
-        tableBody.innerHTML = users.map(user => `
-          <tr>
-            <td>${user.id}</td>
-            <td>${user.name}</td>
-            <td>${user.email}</td>
-            <td>${user.role}</td>
-            <td>${new Date(user.created_at).toLocaleString()}</td>
-          </tr>
-        `).join('');
-      } catch (error) {
-        console.error('Error:', error);
-        document.getElementById('error-message').textContent = error.message;
-        document.getElementById('error-message').style.display = 'block';
-        document.getElementById('users-table').getElementsByTagName('tbody')[0].innerHTML = '';
-      }
+    function hideError() {
+      document.getElementById('error-message').style.display = 'none';
     }
 
     function logout() {
       localStorage.removeItem('auth_token');
-      alert('Logged out');
       window.location.href = '/login';
     }
+
+    async function fetchUsers() {
+  try {
+    console.log("Current token:", localStorage.getItem('auth_token'));
+    console.log("Current role:", localStorage.getItem('role'));
+
+    const response = await fetch(`${API_URL}/users`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      }
+    });
+
+    console.log("Response status:", response.status);
+    
+    if (response.status === 403) {
+      throw new Error("Admin access required");
+    }
+
+    const data = await response.json();
+    console.log("Users data:", data);
+    
+    if (!response.ok) {
+      throw new Error(data.detail || "Failed to fetch users");
+    }
+
+    renderUsers(data);
+  } catch (error) {
+    console.error("Fetch error:", error);
+    showError(error.message);
+    
+    if (error.message.includes("Unauthorized") || error.message.includes("Admin")) {
+      setTimeout(() => window.location.href = '/login', 2000);
+    }
+  }
+}
 
     // Initialize
     document.addEventListener('DOMContentLoaded', fetchUsers);

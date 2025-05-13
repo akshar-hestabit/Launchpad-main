@@ -9,14 +9,13 @@ from app.auth import get_db
 router = APIRouter()
 
 def add_to_wishlist(db: Session, wishlist: WishlistCreate):
-    # Check if item already exists in wishlist
     existing_item = db.query(Wishlist).filter(
         Wishlist.user_id == wishlist.user_id,
         Wishlist.product_id == wishlist.product_id
     ).first()
     
     if existing_item:
-        return None  # Or raise an exception
+        return None  
     
     db_item = Wishlist(**wishlist.model_dump())
     db.add(db_item)
@@ -70,7 +69,7 @@ def remove_item_from_wishlist(
         )
     return {"message": "Item removed from wishlist"}
 
-# Get User's Wishlist
+
 @router.get("/wishlist/{user_id}", response_model=List[WishlistResponse])
 def get_user_wishlist(user_id: int, db: Session = Depends(get_db)):
     return get_wishlist_by_user(db, user_id)
