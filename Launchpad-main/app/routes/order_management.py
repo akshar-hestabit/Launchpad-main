@@ -79,8 +79,6 @@ def get_orders_for_user(user_id: int, db: Session = Depends(get_db), user: model
 
 @router.get("/all_orders", response_model=list[OrderOut])
 def get_all_orders_route(db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
-    if user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admins only")
     return get_all_orders(db)
 
 @router.get("/{order_id}", response_model=OrderOut)

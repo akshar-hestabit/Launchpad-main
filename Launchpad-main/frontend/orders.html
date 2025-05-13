@@ -39,14 +39,35 @@
 <body>
     <div class="container">
         <h1>Customer Orders</h1>
-        {% for order in orders %}
-        <div class="order">
-            <h3>Order ID: {{ order.id }}</h3>
-            <p><strong>Customer:</strong> {{ order.customer_name }}</p>
-            <p><strong>Status:</strong> {{ order.status }}</p>
-            <p><strong>Total:</strong> ${{ order.total }}</p>
-        </div>
-        {% endfor %}
+        <div id="orders-container"></div>
     </div>
+
+    <script>
+        fetch('/orders/all_orders', {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("Not authorized");
+            return res.json();
+        })
+        .then(orders => {
+            const container = document.getElementById('orders-container');
+            orders.forEach(order => {
+                container.innerHTML += `
+                    <div class="order">
+                        <h3>Order ID: ${order.id}</h3>
+                        <p><strong>Status:</strong> ${order.status}</p>
+                        <p><strong>Total:</strong> $${order.total_price}</p>
+                    </div>
+                `;
+            });
+        })
+        .catch(err => {
+            alert(err.message);
+            window.location.href = '/login'; // redirect to login if not authorized
+        });
+    </script>
 </body>
 </html>

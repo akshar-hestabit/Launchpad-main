@@ -83,7 +83,7 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), 
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.id}, expires_delta=access_token_expires
+        data={"sub": user.id, "role": user.role}, expires_delta=access_token_expires
     )
     
     return {
@@ -159,3 +159,4 @@ def guest_login(database: Session = Depends(get_db)):
         "token_type": "bearer",
         "user_id": guest_user.id
     })
+

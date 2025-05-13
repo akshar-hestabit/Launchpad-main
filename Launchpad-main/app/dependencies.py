@@ -31,6 +31,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
+
 # Role-based access checks
 def admin_only(user: models.User = Depends(get_current_user)):
     if user.role != "admin":
@@ -41,3 +42,4 @@ def vendor_only(user: models.User = Depends(get_current_user)):
     if user.role != "vendor":
         raise HTTPException(status_code=403, detail="Vendor access required")
     return user
+

@@ -89,12 +89,6 @@
   <script>
     const API_URL = 'http://127.0.0.1:8000';
     const TOKEN = localStorage.getItem('auth_token');
-    
-    if (!TOKEN) {
-      showError('Please log in first.');
-      setTimeout(() => window.location.href = '/login', 2000);
-      return ;
-    }
 
     function showError(message) {
       const errorDiv = document.getElementById('error-message');
@@ -111,40 +105,63 @@
       window.location.href = '/login';
     }
 
-    async function fetchUsers() {
-  try {
-    console.log("Current token:", localStorage.getItem('auth_token'));
-    console.log("Current role:", localStorage.getItem('role'));
+    function renderUsers(users) {
+      const tbody = document.querySelector('#users-table tbody');
+      tbody.innerHTML = ''; // Clear previous rows
 
-    const response = await fetch(`${API_URL}/users`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      if (!Array.isArray(users) || users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">No users found</td></tr>';
+        return;
       }
-    });
 
-    console.log("Response status:", response.status);
-    
-    if (response.status === 403) {
-      throw new Error("Admin access required");
+      users.forEach(user => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${user.id}</td>
+          <td>${user.username}</td>
+          <td>${user.email}</td>
+          <td>${user.role}</td>
+        `;
+        tbody.appendChild(row);
+      });
     }
 
-    const data = await response.json();
-    console.log("Users data:", data);
-    
-    if (!response.ok) {
-      throw new Error(data.detail || "Failed to fetch users");
-    }
+    async function fetchUsers() {
+      if (!TOKEN) {
+        showError('Please log in first.');
+        setTimeout(() => window.location.href = '/login', 2000);
+        return;
+      }
+      try {
+        const response = await fetch(`${API_URL}/users`, {
+          headers: {
+            'Authorization': `Bearer ${TOKEN}`
+          }
+        });
 
-    renderUsers(data);
-  } catch (error) {
-    console.error("Fetch error:", error);
-    showError(error.message);
-    
-    if (error.message.includes("Unauthorized") || error.message.includes("Admin")) {
-      setTimeout(() => window.location.href = '/login', 2000);
+        if (response.status === 403) {
+          showError('Admin privileges required.');
+          setTimeout(() => window.location.href = '/login', 2000);
+          return;
+        }
+
+        if (!response.ok) {
+          let errorData;
+          try {
+            errorData = await response.json();
+          } catch {
+            errorData = { detail: 'Failed to fetch users' };
+          }
+          throw new Error(errorData.detail || 'Failed to fetch users');
+        }
+
+        const data = await response.json();
+        renderUsers(data);
+      } catch (error) {
+        showError(error.message);
+        console.error('Fetch error:', error);
+      }
     }
-  }
-}
 
     // Initialize
     document.addEventListener('DOMContentLoaded', fetchUsers);
