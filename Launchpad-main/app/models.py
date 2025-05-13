@@ -20,7 +20,7 @@ class User(Base):
     is_verified = Column(Boolean, default=False)
     orders = relationship("Order", back_populates="user", cascade="all, delete")
     wishlist = relationship("Wishlist", back_populates="user", cascade="all, delete")
-    addresses = relationship("Address", back_populates="user")
+    #addresses = relationship("Address", back_populates="user")
 
     def set_password(self, password: str):
         self.hashed_password = pwd_context.hash(password)
@@ -91,7 +91,7 @@ class Address(Base):
     state = Column(String, nullable=False)
     country = Column(String, nullable=False)
     zip_code = Column(String, nullable=False)
-    user = relationship("User", back_populates="addresses")
+    #user = relationship("User", back_populates="addresses")
 
 
 class TokenBlacklist(Base):

@@ -18,7 +18,10 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     role: str | None = "customer"
-    address: AddressCreate
+    address: AddressCreate | None = None
+    model_config = {
+        "from_attributes": True
+    }
 
 class UserOut(BaseModel):
     id: int
