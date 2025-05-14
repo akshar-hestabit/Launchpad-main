@@ -147,3 +147,21 @@ class WishlistResponse(WishlistBase):
         orm_mode = True
 
 
+#-------- Vendor Schemas--------#
+class VendorCreate(BaseModel):
+    name :str
+    email : EmailStr
+    password: str
+
+class VendorLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class VendorOut(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+    phone: str | None = None
+
+    class Config:
+        orm_mode = True

@@ -57,19 +57,22 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def verify_token(token: str, db: Session):
+    print("verify_token called")  
     try:
         # Check if token is blacklisted
         blacklisted = db.query(models.TokenBlacklist).filter(models.TokenBlacklist.token == token).first()
         if blacklisted:
+            print("Token is blacklisted")  
             return None
-            
+
+        print("Decoding token...")  
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise JWTError()
-        return username
-    except JWTError:
+        print("Decoded payload:", payload)  
+
+        return payload.get("sub")  
+    except JWTError as e:
         return None
+
 
 @router.post("/login", response_model=schemas.Token)
 def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -83,7 +86,7 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), 
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.id, "role": user.role}, expires_delta=access_token_expires
+        data={"sub": str(user.id), "role": user.role}, expires_delta=access_token_expires
     )
     
     return {
@@ -117,21 +120,34 @@ def logout(response: Response, token: str = Depends(oauth2_scheme), db: Session 
         )
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    username = verify_token(token, db)
-    if token:
-        username = verify_token(token, db)
-        user = db.query(models.User).filter(models.User.username == username).first()
-        if user:
-            return user
+    # Handle case where no token is provided (guest user)
+    if not token:
+        guest = models.User(
+            username="guest",
+            email="",
+            hashed_password="",
+            role="guest"
+        )
+        guest.id = 0
+        return guest
+    
+    # Verify token and get user ID
+    user_id = verify_token(token, db)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    try:
+        # Convert to integer and query user
+        user_id_int = int(user_id)
+        user = db.query(models.User).filter(models.User.id == user_id_int).first()
         
-    guest = models.User(
-        username="guest",
-        email="",
-        hashed_password="",
-        role="guest"
-    )
-    guest.id = 0
-    return guest
+        if not user:
+            raise HTTPException(status_code=404, detail=f"User with ID {user_id_int} not found")
+            
+        return user
+        
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID format in token")
 
 @router.post("/guest-login")
 def guest_login(database: Session = Depends(get_db)):
@@ -148,7 +164,7 @@ def guest_login(database: Session = Depends(get_db)):
     # Generate access token for the guest user
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode = {
-        "sub": guest_user.id,
+        "sub": str(guest_user.id),
         "role": "guest",
         "exp": datetime.utcnow() + access_token_expires
     }

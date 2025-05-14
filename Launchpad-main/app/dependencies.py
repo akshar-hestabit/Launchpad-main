@@ -1,5 +1,5 @@
 # Module: app/dependencies.py
-
+#shared dependencies such as getdb and token_validation
 from fastapi import Depends, HTTPException, status
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -19,7 +19,7 @@ def get_db():
 
 # Get current user from JWT
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    username = verify_token(token)
+    username = verify_token(token, db)
     if not username:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -29,6 +29,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     user = db.query(models.User).filter(models.User.username == username).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    print({"user": user})
     return user
 
 

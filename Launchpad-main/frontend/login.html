@@ -123,34 +123,28 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    messageElement.textContent = 'Login successful! Redirecting...';
-                    messageElement.className = 'message success';
-                    messageElement.style.display = 'block';
-
                     if (data.access_token) {
                         localStorage.setItem('auth_token', data.access_token);
-                        localStorage.setItem("user_id", data.userId);
-                        localStorage.setItem("role", data.role);
-                    }
 
-                    let userId = null;
-                    if (data.user_id) {
-                        userId = data.user_id;
-                    } else if (data.access_token) {
                         try {
                             const payload = JSON.parse(atob(data.access_token.split('.')[1]));
-                            userId = payload.user_id || payload.sub;
-                        } catch {}
-                    }
+                            localStorage.setItem("user_id", payload.sub || payload.user_id);
+                            localStorage.setItem("role", payload.role);
+                        } catch (e) {
+                            console.error("Failed to decode JWT:", e);
+                        }
 
-                    if (userId) {
-                        localStorage.setItem('user_id', userId);
+                        messageElement.textContent = 'Login successful! Redirecting...';
+                        messageElement.className = 'message success';
+                        messageElement.style.display = 'block';
+
                         setTimeout(() => {
                             window.location.href = '/static/dashboard.html';
                         }, 1500);
                     } else {
-                        messageElement.textContent = 'Login successful but user ID not found.';
+                        messageElement.textContent = 'Login response missing token.';
                         messageElement.className = 'message error';
+                        messageElement.style.display = 'block';
                     }
                 } else {
                     throw new Error(data.detail || 'Login failed.');

@@ -1,4 +1,3 @@
-# Module: app/routes/users.py
 
 
 from fastapi import APIRouter, Depends, HTTPException

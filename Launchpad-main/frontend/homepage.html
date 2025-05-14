@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Launchpad Home</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    /* NAVIGATION BAR */
+    header {
+      background: #fff;
+      padding: 1rem 2rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    nav {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+    }
+    nav a {
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      background: #007bff;
+      color: #fff;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    nav a:hover {
+      background: #0056b3;
+    }
+
+    /* MAIN CONTENT */
+    main {
+      display: flex;
+      justify-content: center;    /* center horizontally */
+      align-items: center;        /* center vertically */
+      min-height: calc(100vh - 70px); /* full viewport minus header height */
+      padding: 2rem;
+      box-sizing: border-box;
+    }
+
+    /* SEARCH FORM STYLES */
+    #searchForm {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      max-width: 600px;
+      width: 100%;
+      justify-content: center;
+    }
+    #searchForm input,
+    #searchForm button {
+      flex: 1 1 120px;  /* grow/shrink with a base width */
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #searchForm button {
+      background: #4CAF50;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      flex: 1 1 100px;
+      transition: background 0.2s;
+    }
+    #searchForm button:hover {
+      background: #388e3c;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="/frontend/products.html">Products</a>
+      <a href="/frontend/admin.html">Admin Page</a>
+      <a href="/frontend/orders.html">Orders</a>
+      <a href="/frontend/wishlist.html">Wishlist</a>
+      <a href="#" id="logoutBtn">Logout</a>
+    </nav>
+  </header>
+
+  <main>
+    <form id="searchForm">
+      <input type="text" id="q" placeholder="Search..." />
+      <input type="number" id="min_price" placeholder="Min Price" />
+      <input type="number" id="max_price" placeholder="Max Price" />
+      <input type="text" id="brand" placeholder="Brand" />
+      <input type="number" id="category_id" placeholder="Category ID" />
+      <button type="submit">Search</button>
+    </form>
+  </main>
+
+  <div id="results"></div>
+
+  <script>
+    // Logout logic (same as your dashboard)
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_id');
+      localStorage.removeItem('user_name');
+      window.location.href = '/static/login.html';
+    });
+    
+    // Your existing search & fetch code goes here...
+    async function fetchAndDisplayProducts(params = "") { /* … */ }
+    window.onload = () => fetchAndDisplayProducts();
+    document.getElementById('searchForm').addEventListener('submit', async (e) => { /* … */ });
+  </script>
+</body>
+</html>
+

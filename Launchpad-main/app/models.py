@@ -20,7 +20,7 @@ class User(Base):
     is_verified = Column(Boolean, default=False)
     orders = relationship("Order", back_populates="user", cascade="all, delete")
     wishlist = relationship("Wishlist", back_populates="user", cascade="all, delete")
-    #addresses = relationship("Address", back_populates="user")
+    addresses = relationship("Address", back_populates="user")
 
     def set_password(self, password: str):
         self.hashed_password = pwd_context.hash(password)
@@ -44,9 +44,11 @@ class Products(Base):
     quantity = Column(Integer, nullable=False)
     brand = Column(String, index=True, nullable=True)  
     category_id = Column(Integer, ForeignKey("categories.id"), index=True, nullable=False) 
+    vendor_id = Column(Integer, ForeignKey("vendors.id"), index=True, default=1)
 
     category = relationship("Category", back_populates="products")
     wishlists = relationship("Wishlist", back_populates="product", cascade="all, delete")
+    vendor = relationship("Vendor", back_populates="product", cascade="all, delete")
 
 class Wishlist(Base):
     __tablename__ = "wishlist"
@@ -91,8 +93,17 @@ class Address(Base):
     state = Column(String, nullable=False)
     country = Column(String, nullable=False)
     zip_code = Column(String, nullable=False)
-    #user = relationship("User", back_populates="addresses")
+    user = relationship("User", back_populates="addresses")
 
+class Vendor(Base):
+    __tablename__ = "vendors"
+    id  = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    email = Column(String)
+    hashed_password = Column(String)
+    phone = Column(String)  
+
+    product = relationship("Products", back_populates="vendor", cascade="all, delete")
 
 class TokenBlacklist(Base):
     __tablename__ = "token_blacklist"
