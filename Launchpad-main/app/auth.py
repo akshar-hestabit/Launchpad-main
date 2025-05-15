@@ -69,7 +69,7 @@ def verify_token(token: str, db: Session):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         print("Decoded payload:", payload)  
 
-        return payload.get("sub")  
+        return payload  
     except JWTError as e:
         return None
 
@@ -120,34 +120,24 @@ def logout(response: Response, token: str = Depends(oauth2_scheme), db: Session 
         )
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    # Handle case where no token is provided (guest user)
-    if not token:
-        guest = models.User(
-            username="guest",
-            email="",
-            hashed_password="",
-            role="guest"
-        )
-        guest.id = 0
-        return guest
-    
-    # Verify token and get user ID
-    user_id = verify_token(token, db)
-    if not user_id:
+    payload = verify_token(token, db)
+    if not payload:
         raise HTTPException(status_code=401, detail="Invalid token")
-    
-    try:
-        # Convert to integer and query user
-        user_id_int = int(user_id)
-        user = db.query(models.User).filter(models.User.id == user_id_int).first()
-        
-        if not user:
-            raise HTTPException(status_code=404, detail=f"User with ID {user_id_int} not found")
-            
-        return user
-        
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid user ID format in token")
+
+    user_id = int(payload.get("sub"))
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    print("🪪 Token payload:", payload)
+    print("🧑 User ID from token:", user_id)
+    print("🔍 User from DB:", user.username, "Role in DB:", user.role)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Make sure role is populated from DB
+    print("✅ User from DB:", user.username, "Role:", user.role)
+
+    return user
+
 
 @router.post("/guest-login")
 def guest_login(database: Session = Depends(get_db)):
@@ -176,3 +166,13 @@ def guest_login(database: Session = Depends(get_db)):
         "user_id": guest_user.id
     })
 
+# app/utils/security.py (or wherever you keep it)
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)

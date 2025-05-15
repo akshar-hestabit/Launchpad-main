@@ -149,9 +149,13 @@ class WishlistResponse(WishlistBase):
 
 #-------- Vendor Schemas--------#
 class VendorCreate(BaseModel):
+    id: int
     name :str
     email : EmailStr
     password: str
+    phone : str | None = None
+    class Config:
+        orm_mode = True
 
 class VendorLogin(BaseModel):
     email: EmailStr
@@ -161,6 +165,14 @@ class VendorOut(BaseModel):
     id: int
     name: str
     email: EmailStr
+    phone: str | None = None
+
+    class Config:
+        orm_mode = True
+class VendorUpdate(BaseModel):
+    name: str | None = None
+    email: EmailStr | None = None
+    password: str | None = None
     phone: str | None = None
 
     class Config:

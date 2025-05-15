@@ -29,13 +29,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     user = db.query(models.User).filter(models.User.username == username).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    print({"user": user})
+    
     return user
 
 
 # Role-based access checks
 def admin_only(user: models.User = Depends(get_current_user)):
+    print("DEBUG - User Role:", user.role)
     if user.role != "admin":
+        print("User")
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 

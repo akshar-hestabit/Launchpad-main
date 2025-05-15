@@ -6,7 +6,7 @@ from app.db import engine, SessionLocal
 from app.routes import (
     users, dashboard, products, cart_route,
     stripe_payment, stripe_webhook,
-    paypal_payment, paypal_webhook, order_management, invoice,search, crud_wishlist)
+    paypal_payment, paypal_webhook, vendors,order_management, invoice,search, crud_wishlist)
 from app.utils import(otp, email)
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -27,6 +27,7 @@ limiter = Limiter(
 )
 
 # Initialize FastAPI app
+#include middleware for rate limiting, and slowapi
 app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -42,6 +43,7 @@ app.add_middleware(
 app.mount('/frontend', StaticFiles(directory='frontend'), name='frontend')
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 Instrumentator().instrument(app).expose(app, include_in_schema=False)
+
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
@@ -119,6 +121,7 @@ app.include_router(order_management.router)
 app.include_router(invoice.router)
 app.include_router(search.router)
 app.include_router(crud_wishlist.router)
+app.include_router(vendors.router)
 # Health check endpoints
 @app.get("/")
 def root():
