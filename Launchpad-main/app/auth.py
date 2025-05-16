@@ -11,6 +11,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi import status
 from typing import Optional
 import uuid
+from app.dependencies import get_current_user
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -118,6 +119,10 @@ def logout(response: Response, token: str = Depends(oauth2_scheme), db: Session 
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
         )
+
+@router.get("/users/me", response_model=schemas.UserRoleOut)
+def read_current_user(user: models.User= Depends(get_current_user)):
+    return {"role": user.role}
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     payload = verify_token(token, db)

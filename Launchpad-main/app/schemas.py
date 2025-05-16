@@ -40,6 +40,8 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: str | None = None
 
+class UserRoleOut(BaseModel):
+    role: str
 
 # -------- Category, Brand, Vendor Nested Schemas -------- #
 

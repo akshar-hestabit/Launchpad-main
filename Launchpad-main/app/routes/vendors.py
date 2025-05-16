@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy.orm import Session
 from app import models, schemas
 from app.schemas import VendorOut, VendorCreate, VendorUpdate
-from app.auth import get_db, get_password_hash
+from app.auth import get_db, get_password_hash, verify_token
 from app.models import Vendor, User
 from app.dependencies import admin_only, vendor_only
 from fastapi.security import OAuth2PasswordBearer
@@ -12,48 +12,45 @@ import os
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
 
-
-
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
-def decode_jwt(token: str):
-    print(f"toekn :::::: {token}")
+# Use the token directly to determine permissions 
+# instead of looking up the user in the database
+async def get_current_user_from_token(token: str = Security(oauth2_scheme), db: Session = Depends(get_db)):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
+        payload = verify_token(token, db)
+        if not payload:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid authentication token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            
+        user_id = int(payload.get("sub"))
         role = payload.get("role")
-        #print(f"ROLE : {role} --- USER ID : {user_id}")
+        
         if user_id is None or role is None:
-            raise HTTPException(status_code=403, detail="Invalid token payload")
-        return {"user_id": int(user_id), "role": role}
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+            
+        # Return both token data and user data for flexibility
+        return {"user_id": user_id, "role": role, "token_data": payload}
     except JWTError:
-        raise HTTPException(status_code=403, detail="Could not validate credentials----")
-
-def get_current_user(token: str = Security(oauth2_scheme)):
-    return decode_jwt(token)
-
-def get_role(current_user: dict = Depends(get_current_user)):
-    return current_user.get("role")
-
-def admin_or_vendor_required(role: str = Depends(get_role)):
-    if role not in ["admin", "vendor"]:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-    return role
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 @router.get("/vendors", response_model=list[VendorOut])
-async def all_vendors(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    payload = decode_jwt(current_user)
-    role = payload.get("role")
+async def all_vendors(
+    db: Session = Depends(get_db), 
+    current_user: dict = Depends(get_current_user_from_token)
+):
+    # Use the role from the token itself
+    role = current_user.get("role")
+    
     if role not in ["admin", "vendor"]:
-        raise HTTPException(status_code=403, detail="admin/vendor privilege required")
+        raise HTTPException(status_code=403, detail="Admin or vendor privileges required")
     
     vendors = db.query(models.Vendor).all()
-    print(vendors)
-
     return vendors
-
-
 
 @router.post("/register/vendor", response_model=VendorOut)
 async def register_vendor(vendor: VendorCreate, db: Session = Depends(get_db)):
@@ -76,6 +73,3 @@ async def register_vendor(vendor: VendorCreate, db: Session = Depends(get_db)):
     db.refresh(new_vendor)
 
     return new_vendor
-
-# @router.get("/vendors/{vendor_id}", response_model=schemas.VendorOut)
-# async def get_vendor(vendor_id:int, db: Session = Depends(get_db))

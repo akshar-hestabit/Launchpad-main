@@ -44,6 +44,16 @@
         button:hover {
             background-color: #0056b3;
         }
+        .google-btn {
+            background-color: #db4437;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .google-btn:hover {
+            background-color: #c1351d;
+        }
         button:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
@@ -75,6 +85,22 @@
             vertical-align: middle;
             margin-right: 8px;
         }
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+        }
+        .divider::before, .divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid #ddd;
+        }
+        .divider::before {
+            margin-right: 10px;
+        }
+        .divider::after {
+            margin-left: 10px;
+        }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -92,6 +118,16 @@
                 <span id="spinner" class="spinner" style="display: none;"></span>
             </button>
         </form>
+        
+        <div class="divider">OR</div>
+        
+        <button id="googleBtn" class="google-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white">
+                <path d="M12.545 10.239v3.821h5.445c-0.712 2.315-2.647 3.972-5.445 3.972-3.332 0-6.033-2.701-6.033-6.032s2.701-6.032 6.033-6.032c1.498 0 2.866 0.549 3.921 1.453l2.814-2.814c-1.784-1.664-4.152-2.676-6.735-2.676-5.522 0-10 4.477-10 10s4.478 10 10 10c8.396 0 10-7.524 10-10 0-0.671-0.068-1.325-0.182-1.977h-9.818z"/>
+            </svg>
+            Continue with Google
+        </button>
+        
         <button id="guestBtn">Continue as Guest</button>
         <div id="message" class="message"></div>
     </div>
@@ -165,6 +201,10 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             handleLoginRequest('http://localhost:8000/login', `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
+        });
+
+        document.getElementById('googleBtn').addEventListener('click', () => {
+            window.location.href = 'http://localhost:8000/auth/google';
         });
 
         document.getElementById('guestBtn').addEventListener('click', () => {

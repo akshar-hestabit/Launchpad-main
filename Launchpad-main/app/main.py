@@ -6,7 +6,7 @@ from app.db import engine, SessionLocal
 from app.routes import (
     users, dashboard, products, cart_route,
     stripe_payment, stripe_webhook,
-    paypal_payment, paypal_webhook, vendors,order_management, invoice,search, crud_wishlist)
+    paypal_payment, paypal_webhook, vendors,order_management, invoice,search, crud_wishlist,oauth_google)
 from app.utils import(otp, email)
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -21,6 +21,7 @@ from app.utils.request_logging import log_requests
 from app.utils.logger import logger
 from prometheus_fastapi_instrumentator import Instrumentator
 from typing import Optional,List
+from starlette.middleware.sessions import SessionMiddleware
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["50/minute"]
@@ -30,6 +31,7 @@ limiter = Limiter(
 #include middleware for rate limiting, and slowapi
 app = FastAPI()
 app.state.limiter = limiter
+app.add_middleware(SessionMiddleware, secret_key="3a2c31f36e1fbe9fc7c487cc47f69d37f0c835dddcf80063b1c6d578a74f107d9375ac040f5830523be872eb5d5cbce26a6c0dd7d11055942d68c6927a21921cd37c51ede302cd4266358359016e35d9fdc3d236b39154c99821cba6768d53280c0a7133ccaa08fcfdac79a89c743a78d02157e44c2a4e837d40384c13ae2f47")
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 app.middleware("http")(log_requests)  
@@ -40,6 +42,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 app.mount('/frontend', StaticFiles(directory='frontend'), name='frontend')
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 Instrumentator().instrument(app).expose(app, include_in_schema=False)
@@ -122,6 +125,7 @@ app.include_router(invoice.router)
 app.include_router(search.router)
 app.include_router(crud_wishlist.router)
 app.include_router(vendors.router)
+app.include_router(oauth_google.router)
 # Health check endpoints
 @app.get("/")
 def root():

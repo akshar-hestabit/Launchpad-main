@@ -4,9 +4,15 @@ from fastapi import Depends, HTTPException, status
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from app import models, db
-from app.auth import SECRET_KEY, ALGORITHM, verify_token
+#from app.auth import verify_token
 from fastapi.security import OAuth2PasswordBearer
+import os
+from app.security_utils import verify_token
+from dotenv import load_dotenv
+load_dotenv()
 
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 # Dependency to get DB session
@@ -18,19 +24,13 @@ def get_db():
         database.close()
 
 # Get current user from JWT
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    username = verify_token(token, db)
-    if not username:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    return user
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    return verify_token(token, credentials_exception)
 
 
 # Role-based access checks
