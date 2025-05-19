@@ -5,7 +5,12 @@ from app.dependencies import get_db
 from fastapi import Query
 from fastapi.security import OAuth2PasswordBearer
 from elasticsearch import Elasticsearch
+from jose import jwt, JWTError
+import os
+from app.auth import get_current_user
 
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = "HS256"
 ELASTICSEARCH_URL = "http://localhost:9200"
 es = Elasticsearch(ELASTICSEARCH_URL)
 INDEX_NAME = "products"
@@ -14,8 +19,17 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 router = APIRouter()
 
 def decode_jwt(token: str):
-    return {"user_id": 1, "role": "admin"}  
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        role = payload.get("role")
 
+        if not user_id or not role:
+            raise HTTPException(status_code=4-3, detail="Can not validate credentials")
+        return {"user_id": user_id, "role": role}
+    except JWTError:
+        raise HTTPException(status_code=403, detail="Could not validate credentials")
+    
 def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         return decode_jwt(token)  
@@ -31,8 +45,11 @@ def admin_or_vendor_required(role: str = Depends(get_role)):
     return role
 
 @router.get("/products", response_model=list[schemas.ProductOut])
-def all_products(db: Session = Depends(get_db)):
+def all_products(token: dict, db: Session = Depends(get_db)):
+    
     return db.query(models.Products).all()
+
+# def get_current_
 
 @router.get("/products/search")
 def search_products(

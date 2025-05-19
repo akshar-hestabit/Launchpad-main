@@ -8,6 +8,7 @@ from app import models
 from datetime import timedelta
 import os
 from sqlalchemy.orm import Session
+
 # Initialize router
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -30,30 +31,45 @@ async def login_via_google(request: Request):
     redirect_url = request.url_for("auth_google_callback")
     return await oauth.google.authorize_redirect(request, redirect_url)
 
+
 @router.get("/google/callback")
 async def auth_google_callback(
     request: Request, 
     db: Session = Depends(get_db)
 ):
     try:
-
+        # Get the token from Google OAuth
+        print("Starting Google OAuth callback...")
         token = await oauth.google.authorize_access_token(request)
+        print(f"Received token: {token}")
         
-        if not token.get('id_token'):
-            raise HTTPException(status_code=400, detail="Missing id_token in Google response")      
+        # Make sure we have an access token
+        if 'access_token' not in token:
+            print("No access token in response")
+            return RedirectResponse(url="/login?error=no_access_token")
         
-        #print(token)
-        user_info = await oauth.google.parse_id_token(request, token)
-        print(f"this is user info********************************************************************_______*********{user_info}")
+        # Get user info directly using the access token
+        try:
+            # Use the token directly
+            resp = await oauth.google.get('https://www.googleapis.com/oauth2/v3/userinfo', token=token)
+            user_info = resp.json()
+            print(f"User info from Google: {user_info}")
+        except Exception as userinfo_error:
+            print(f"Error getting user info: {userinfo_error}")
+            return RedirectResponse(url="/login?error=user_info_failed")
+        
         email = user_info.get("email")
-        name = user_info.get("name")
+        name = user_info.get("name", "Google User")
         
         if not email:
-            return RedirectResponse(url="/auth/failed?error=no_email")
+            print("No email in user info")
+            return RedirectResponse(url="/login?error=no_email")
             
+        print(f"Login attempt for Google user: {email}")
         user = db.query(models.User).filter(models.User.email == email).first()
         
         if not user:
+            print(f"Creating new user for Google account: {email}")
             user = models.User(
                 username=email.split("@")[0],
                 email=email,
@@ -71,10 +87,19 @@ async def auth_google_callback(
         )
         
         # Redirect to frontend with token
-        frontend_url = f"{os.getenv('FRONTEND_URL')}/frontend/dashboard?token={access_token}"
-        return RedirectResponse(url=frontend_url)
+        frontend_url = f"http://localhost:8000/frontend/dashboard.html?token={access_token}"
+        print(f"Redirecting to: {frontend_url}")
+        
+        # Make sure we return a proper redirect with status code 302
+        response = RedirectResponse(url=frontend_url)
+        response.status_code = 302
+        return response
         
     except Exception as e:
-        #return RedirectResponse(url=f"/auth/failed?error={str(e)}")
-        print(f"error is :::::: {e}")
-        return e
+        print(f"Error in Google OAuth callback: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return a more user-friendly error page with a 302 redirect
+        response = RedirectResponse(url="/login?error=auth_failed")
+        response.status_code = 302
+        return response

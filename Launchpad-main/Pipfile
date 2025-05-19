@@ -28,6 +28,7 @@ uuid = "*"
 authlib = "*"
 httpx = "*"
 itsdangerous = "*"
+openai = "*"
 
 [dev-packages]
 

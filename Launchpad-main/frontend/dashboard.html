@@ -61,24 +61,36 @@
     </div>
 
     <script>
-        const token = localStorage.getItem('auth_token');
+        // Extract token from URL (e.g., ?token=XYZ)
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+
+        if (token) {
+            localStorage.setItem('auth_token', token);
+            console.log("JWT token stored in localStorage");
+
+            // Optional: clean the URL
+            const newUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+        }
+
+        // Fetch token and optional user info from localStorage
+        const storedToken = localStorage.getItem('auth_token');
         const userId = localStorage.getItem('user_id');
         const userName = localStorage.getItem('user_name'); 
         const logoutBtn = document.getElementById('logoutBtn');
         const userInfo = document.getElementById('userInfo');
 
-        
+        // Show user greeting
         if (userName) {
             userInfo.textContent = `Welcome, ${userName}! (User ID: ${userId})`;
         } else if (userId) {
             userInfo.textContent = `Logged in as User ID: ${userId}`;
         }
 
-        
+        // Logout clears storage and redirects
         logoutBtn.addEventListener('click', () => {
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user_id');
-            localStorage.removeItem('user_name'); 
+            localStorage.clear();
             window.location.href = '/static/login.html';
         });
     </script>

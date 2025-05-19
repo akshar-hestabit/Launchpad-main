@@ -5,7 +5,7 @@ from app import auth, models
 from app.db import engine, SessionLocal
 from app.routes import (
     users, dashboard, products, cart_route,
-    stripe_payment, stripe_webhook,
+    stripe_payment, stripe_webhook,llm_chat,
     paypal_payment, paypal_webhook, vendors,order_management, invoice,search, crud_wishlist,oauth_google)
 from app.utils import(otp, email)
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -126,6 +126,7 @@ app.include_router(search.router)
 app.include_router(crud_wishlist.router)
 app.include_router(vendors.router)
 app.include_router(oauth_google.router)
+app.include_router(llm_chat.router)
 # Health check endpoints
 @app.get("/")
 def root():
